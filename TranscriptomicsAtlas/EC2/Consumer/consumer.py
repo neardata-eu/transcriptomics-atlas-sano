@@ -28,7 +28,7 @@ s3 = boto3.resource('s3')
 
 def consume_message(msg_body):
     srr_id = msg_body
-    ### Check if file exists in S3, if yes then skip
+    ### Check if file exists in S3, if yes then skip ###
 
     try:  # TODO replace try-except with listing files?  https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
         print("Checking if the pipeline has already been run")
@@ -69,6 +69,11 @@ def consume_message(msg_body):
     print("Quantification finished")
 
     ### Run R script on quant.sf
+
+    # Update samples.txt script with correct SRR_ID
+    with open("/home/ubuntu/DESeq2/samples.txt", "w") as f:
+        f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
+
     print("DESeq2 starting")
     subprocess.run(
         ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id]
@@ -88,7 +93,7 @@ def consume_message(msg_body):
                 f.unlink()
 
     print("Starting removing R files")
-    clean_dir("/home/ubuntu/R_output")
+    clean_dir("/home/ubuntu/R_output")  # TODO remove sra files, fastq, salmon
     print("Finished removing R files")
 
 
