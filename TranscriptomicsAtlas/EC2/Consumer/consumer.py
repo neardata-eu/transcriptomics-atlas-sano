@@ -7,10 +7,14 @@ import requests
 
 import boto3
 import botocore
+import watchtower, logging
 
-#  TODO is this really necessary?
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.addHandler(watchtower.CloudWatchLogHandler(send_interval=1))
 
 #  Retrieve queue_name from Parameter Store
 ssm = boto3.client("ssm")
@@ -28,45 +32,45 @@ s3 = boto3.resource('s3')
 
 def consume_message(msg_body):
     srr_id = msg_body
-    ### Check if file exists in S3, if yes then skip ###
 
+    ### Check if file exists in S3, if yes then skip ###
     try:  # TODO replace try-except with listing files?  https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
-        print("Checking if the pipeline has already been run")
-        s3.Object("neardata-bucket-123", f'normalized_counts/{srr_id}/{srr_id}_normalized_counts2.txt').load()
-        print("File exisits, exiting")
+        logger.info("Checking if the pipeline has already been run")
+        s3.Object("neardata-bucket-123", f'normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt').load()
+        logger.debug("File exisits, exiting")
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] != "404":
-            print(e)
+            logger.debug(e)
             return
-        print("File not found, starting the pipeline")
+        logger.info("File not found, starting the pipeline")
 
     ###  Downloading SRR file ###            # TODO extract each step to separate function?
-    print(f"Starting prefetch of {srr_id}")  # TODO replace print with logging
+    logger.info(f"Starting prefetch of {srr_id}")
     # subprocess.run(
     #     [f"prefetch", msg_body]  #  TODO replace with S3 cpy if file available in bucket
     # )
-    print(f"Prefetched")
+    logger.info(f"Prefetched {srr_id}")
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
     fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
     os.makedirs(fastq_dir, exist_ok=True)  # TODO exist_ok=True? for now
-    print("Starting unpacking the SRR file using fasterq-dump")
+    logger.info("Starting unpacking the SRR file using fasterq-dump")
     # subprocess.run(
     #     ["fasterq-dump", srr_id, "--outdir", fastq_dir]
     # )
-    print("Unpacking finished")
+    logger.info("Unpacking finished")
 
     ###  Quantification using Salmon ###
     index_path = "/home/ubuntu/index/human_transcriptome_index"
     quant_dir = f"/home/ubuntu/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
-    print("Quantification starting")
+    logger.info("Quantification starting")
     # subprocess.run(
     #     ["salmon", "quant", "-p", "2", "--useVBOpt", "-i", index_path, "-l", "A", "-1", f"{fastq_dir}_1.fastq", "-2",
     #      f"{fastq_dir}_2.fastq", "-o", quant_dir]  # TODO check args
     # )
     # sleep(30)
-    print("Quantification finished")
+    logger.info("Quantification finished")
 
     ### Run R script on quant.sf
 
@@ -74,17 +78,17 @@ def consume_message(msg_body):
     with open("/home/ubuntu/DESeq2/samples.txt", "w") as f:
         f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
 
-    print("DESeq2 starting")
+    logger.info("DESeq2 starting")
     subprocess.run(
         ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id]
     )
-    print("DESeq2 finished")
+    logger.info("DESeq2 finished")
 
     ### Upload normalized counts to S3 ###
-    print("S3 upload starting")
+    logger.info("S3 upload starting")
     s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
                                f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
-    print("S3 upload finished")
+    logger.info("S3 upload finished")
 
     ### Clean all input and output files ###
     def clean_dir(path):
@@ -92,16 +96,16 @@ def consume_message(msg_body):
             if f.is_file():
                 f.unlink()
 
-    print("Starting removing R files")
+    logger.info("Starting removing generated files")
     clean_dir("/home/ubuntu/R_output")  # TODO remove sra files, fastq, salmon
-    print("Finished removing R files")
+    logger.info("Finished removing generated files")
 
 
 if __name__ == "__main__":
-    print("Awaiting messages")
+    logger.info("Awaiting messages")
     while True:
         messages = queue.receive_messages(MaxNumberOfMessages=1)  # TODO check args
         for message in messages:
-            print(f"Received msg={message.body}")
+            logger.info(f"Received msg={message.body}")
             consume_message(message.body)
             message.delete()

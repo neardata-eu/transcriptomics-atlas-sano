@@ -21,7 +21,7 @@ echo 'export PATH="$PATH":/home/ubuntu/salmon-latest_linux_x86_64/bin' >> ~/.bas
 
 ### PYTHON MODULES
 sudo apt install python3-pip -y
-pip3 install boto3
+pip3 install boto3 watchtower
 
 
 ### R
