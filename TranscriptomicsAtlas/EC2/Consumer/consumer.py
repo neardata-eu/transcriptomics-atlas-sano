@@ -79,15 +79,15 @@ def consume_message(msg_body):
         f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
 
     logger.info("DESeq2 starting")
-    subprocess.run(
-        ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id]
+    subprocess.run(  # TODO consider capturing some logs from subprocess steps
+        ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id], stderr=subprocess.DEVNULL  # TODO modify Rscript import so it doesn't print unnecessary output to stderr
     )
     logger.info("DESeq2 finished")
 
     ### Upload normalized counts to S3 ###
     logger.info("S3 upload starting")
-    s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
-                               f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
+    # s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
+    #                            f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
     logger.info("S3 upload finished")
 
     ### Clean all input and output files ###
@@ -97,7 +97,10 @@ def consume_message(msg_body):
                 f.unlink()
 
     logger.info("Starting removing generated files")
-    clean_dir("/home/ubuntu/R_output")  # TODO remove sra files, fastq, salmon
+    # clean_dir("/home/ubuntu/sratoolkit/sra")
+    # clean_dir("/home/ubuntu/fastq")
+    # clean_dir("/home/ubuntu/salmon")
+    clean_dir("/home/ubuntu/R_output")
     logger.info("Finished removing generated files")
 
 
