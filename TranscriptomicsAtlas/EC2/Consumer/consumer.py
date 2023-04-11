@@ -37,27 +37,34 @@ def consume_message(msg_body):
     try:  # TODO replace try-except with listing files?  https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
         logger.info("Checking if the pipeline has already been run")
         s3.Object(s3_bucket_name, f'normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt').load()
-        logger.debug("File exisits, exiting")
+        logger.info("File exisits, exiting")
+        # return
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] != "404":
-            logger.debug(e)
+            logger.warning(e)
             return
         logger.info("File not found, starting the pipeline")
 
     ###  Downloading SRR file ###            # TODO extract each step to separate function?
     logger.info(f"Starting prefetch of {srr_id}")
-    # subprocess.run(
-    #     [f"prefetch", msg_body]  #  TODO replace with S3 cpy if file available in bucket
-    # )
+    prefetch_result = subprocess.run(
+        [f"prefetch", msg_body],  # TODO replace with S3 cpy if file available in bucket
+        capture_output=True, text=True
+    )
+    logger.info(prefetch_result.stdout)
+    logger.warning(prefetch_result.stderr)
     logger.info(f"Prefetched {srr_id}")
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
     fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
     os.makedirs(fastq_dir, exist_ok=True)
     logger.info("Starting unpacking the SRR file using fasterq-dump")
-    # subprocess.run(
-    #     ["fasterq-dump", srr_id, "--outdir", fastq_dir]
-    # )
+    fasterq_result = subprocess.run(
+        ["fasterq-dump", "--help"],  # ,  srr_id, "--outdir", fastq_dir],
+        capture_output=True, text=True
+    )
+    logger.info(fasterq_result.stdout)
+    logger.warning(fasterq_result.stderr)
     logger.info("Unpacking finished")
 
     ###  Quantification using Salmon ###
@@ -65,10 +72,15 @@ def consume_message(msg_body):
     quant_dir = f"/home/ubuntu/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
     logger.info("Quantification starting")
-    # subprocess.run(
-    #     ["salmon", "quant", "-threads", "2", "--useVBOpt", "-i", index_path, "-l", "A", "-1", f"{fastq_dir}_1.fastq", "-2",
-    #      f"{fastq_dir}_2.fastq", "-o", quant_dir]
-    # )
+    salmon_result = subprocess.run(
+        ["salmon", "--help"],
+        #  "quant", "--threads", "2", "--useVBOpt", "-i", index_path, "-l", "A",
+        #  "-1", f"{fastq_dir}_1.fastq", "-2", f"{fastq_dir}_2.fastq", "-o", quant_dir],
+        capture_output=True, text=True
+    )
+    logger.info(salmon_result.stdout)
+    logger.warning(salmon_result.stderr)
+
     logger.info("Quantification finished")
 
     ### Run R script on quant.sf
@@ -78,9 +90,13 @@ def consume_message(msg_body):
         f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
 
     logger.info("DESeq2 starting")
-    subprocess.run(  # TODO consider capturing some logs from subprocess steps
-        ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id], stderr=subprocess.DEVNULL  # TODO modify Rscript import so it doesn't print unnecessary output to stderr
+    deseq2_result = subprocess.run(
+        ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id],
+        # TODO modify Rscript import so it doesn't print unnecessary output to stderr
+        capture_output=True, text=True
     )
+    logger.info(deseq2_result.stdout)
+    logger.warning(deseq2_result.stderr)
     logger.info("DESeq2 finished")
 
     ### Upload normalized counts to S3 ###
@@ -94,6 +110,7 @@ def consume_message(msg_body):
         for f in Path(path).glob("*"):
             if f.is_file():
                 f.unlink()
+        logger.info(f"Removed files in {path}")
 
     logger.info("Starting removing generated files")
     # clean_dir("/home/ubuntu/sratoolkit/sra")
