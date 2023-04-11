@@ -1,12 +1,10 @@
 import os
 import subprocess
-from time import sleep
 from pathlib import Path
-
-import requests
 
 import boto3
 import botocore
+import requests
 import watchtower, logging
 
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
@@ -75,7 +73,7 @@ def consume_message(msg_body):
     salmon_result = subprocess.run(
         ["salmon", "--help"],
         #  "quant", "--threads", "2", "--useVBOpt", "-i", index_path, "-l", "A",
-        #  "-1", f"{fastq_dir}_1.fastq", "-2", f"{fastq_dir}_2.fastq", "-o", quant_dir],
+        #  "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
         capture_output=True, text=True
     )
     logger.info(salmon_result.stdout)
