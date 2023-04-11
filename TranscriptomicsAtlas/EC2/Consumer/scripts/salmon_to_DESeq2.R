@@ -1,8 +1,8 @@
 #libraries
 library(tximport)
 library(readr)
-library(DESeq2)
-library(dplyr)
+suppressMessages(library(dplyr))
+suppressMessages(library(DESeq2))
 
 args <- commandArgs(trailingOnly = TRUE)
 SRX <- args[1]

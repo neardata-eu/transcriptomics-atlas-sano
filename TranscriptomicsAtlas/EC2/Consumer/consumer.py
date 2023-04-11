@@ -92,7 +92,6 @@ def consume_message(msg_body):
     logger.info("DESeq2 starting")
     deseq2_result = subprocess.run(
         ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id],
-        # TODO modify Rscript import so it doesn't print unnecessary output to stderr
         capture_output=True, text=True
     )
     logger.info(deseq2_result.stdout)
