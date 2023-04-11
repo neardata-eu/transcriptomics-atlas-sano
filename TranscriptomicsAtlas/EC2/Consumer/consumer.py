@@ -36,7 +36,7 @@ def consume_message(msg_body):
     ### Check if file exists in S3, if yes then skip ###
     try:  # TODO replace try-except with listing files?  https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
         logger.info("Checking if the pipeline has already been run")
-        s3.Object("neardata-bucket-123", f'normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt').load()
+        s3.Object(s3_bucket_name, f'normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt').load()
         logger.debug("File exisits, exiting")
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] != "404":
@@ -53,7 +53,7 @@ def consume_message(msg_body):
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
     fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
-    os.makedirs(fastq_dir, exist_ok=True)  # TODO exist_ok=True? for now
+    os.makedirs(fastq_dir, exist_ok=True)
     logger.info("Starting unpacking the SRR file using fasterq-dump")
     # subprocess.run(
     #     ["fasterq-dump", srr_id, "--outdir", fastq_dir]
@@ -66,10 +66,9 @@ def consume_message(msg_body):
     os.makedirs(quant_dir, exist_ok=True)
     logger.info("Quantification starting")
     # subprocess.run(
-    #     ["salmon", "quant", "-p", "2", "--useVBOpt", "-i", index_path, "-l", "A", "-1", f"{fastq_dir}_1.fastq", "-2",
-    #      f"{fastq_dir}_2.fastq", "-o", quant_dir]  # TODO check args
+    #     ["salmon", "quant", "-threads", "2", "--useVBOpt", "-i", index_path, "-l", "A", "-1", f"{fastq_dir}_1.fastq", "-2",
+    #      f"{fastq_dir}_2.fastq", "-o", quant_dir]
     # )
-    # sleep(30)
     logger.info("Quantification finished")
 
     ### Run R script on quant.sf
@@ -107,7 +106,7 @@ def consume_message(msg_body):
 if __name__ == "__main__":
     logger.info("Awaiting messages")
     while True:
-        messages = queue.receive_messages(MaxNumberOfMessages=1)  # TODO check args
+        messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
         for message in messages:
             logger.info(f"Received msg={message.body}")
             consume_message(message.body)
