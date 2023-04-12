@@ -63,11 +63,21 @@ resource "aws_iam_instance_profile" "labRole_profile" {
 
 resource "aws_launch_template" "neardata_lt" {
   name          = "neardata_lt"
-  image_id      = "ami-03964e273411a96b9"
-  instance_type = "r6a.large"
+  image_id      = "ami-0e8c160beeea8398b"
+  instance_type = "m6a.large"
   key_name      = "vockey"
 
   user_data = base64encode(file("init.sh"))
+
+  block_device_mappings {
+    device_name = "/dev/sda1"  # ROOT
+
+    ebs {
+      volume_size = 150
+      volume_type = "gp3"
+      delete_on_termination = "true"
+    }
+  }
 
   network_interfaces {
     security_groups             = [aws_security_group.neardata_sg.id]
