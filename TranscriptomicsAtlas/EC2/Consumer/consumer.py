@@ -9,6 +9,7 @@ import watchtower, logging
 
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
+nproc = int(subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,16 +17,15 @@ logger.addHandler(watchtower.CloudWatchLogHandler(send_interval=1))
 
 #  Retrieve queue_name from Parameter Store
 ssm = boto3.client("ssm")
+sqs = boto3.resource("sqs")
+s3 = boto3.resource('s3')
+
 queue_name_paramter = ssm.get_parameter(Name="/neardata/queue_name", WithDecryption=True)
 queue_name = queue_name_paramter['Parameter']['Value']
+queue = sqs.get_queue_by_name(QueueName=queue_name)
 
 s3_bucket_paramter = ssm.get_parameter(Name="/neardata/s3_bucket_name", WithDecryption=True)
 s3_bucket_name = s3_bucket_paramter['Parameter']['Value']
-
-sqs = boto3.resource("sqs")
-queue = sqs.get_queue_by_name(QueueName=queue_name)
-
-s3 = boto3.resource('s3')
 
 
 def consume_message(msg_body):
@@ -58,7 +58,7 @@ def consume_message(msg_body):
     os.makedirs(fastq_dir, exist_ok=True)
     logger.info("Starting unpacking the SRR file using fasterq-dump")
     fasterq_result = subprocess.run(
-        ["fasterq-dump", "--help"],  # ,  srr_id, "--outdir", fastq_dir],
+        ["fasterq-dump", "--help"],  # ,  srr_id, "--outdir", fastq_dir, "--threads", nproc],
         capture_output=True, text=True
     )
     logger.info(fasterq_result.stdout)
@@ -72,7 +72,7 @@ def consume_message(msg_body):
     logger.info("Quantification starting")
     salmon_result = subprocess.run(
         ["salmon", "--help"],
-        #  "quant", "--threads", "2", "--useVBOpt", "-i", index_path, "-l", "A",
+        #  "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
         #  "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
         capture_output=True, text=True
     )
