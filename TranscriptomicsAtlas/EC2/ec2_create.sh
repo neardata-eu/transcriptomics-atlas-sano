@@ -4,6 +4,7 @@
 sudo apt-get remove needrestart -y
 
 sudo apt-get update
+sudo apt-get install awscli -y
 
 ### SRA-TOOLKIT
 mkdir -p sratoolkit/local
