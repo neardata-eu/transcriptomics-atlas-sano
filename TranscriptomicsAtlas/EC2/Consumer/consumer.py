@@ -7,6 +7,9 @@ import botocore
 import requests
 import watchtower, logging
 
+my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
+                                '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
+
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
 nproc = int(subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout)
@@ -46,8 +49,8 @@ def consume_message(msg_body):
     ###  Downloading SRR file ###            # TODO extract each step to separate function?
     logger.info(f"Starting prefetch of {srr_id}")
     prefetch_result = subprocess.run(
-        [f"prefetch", msg_body],  # TODO replace with S3 cpy if file available in bucket
-        capture_output=True, text=True
+        ["prefetch", msg_body],  # TODO replace with S3 cpy if file available in bucket
+        capture_output=True, text=True, env=my_env
     )
     logger.info(prefetch_result.stdout)
     logger.warning(prefetch_result.stderr)
@@ -59,7 +62,7 @@ def consume_message(msg_body):
     logger.info("Starting unpacking the SRR file using fasterq-dump")
     fasterq_result = subprocess.run(
         ["fasterq-dump", "--help"],  # ,  srr_id, "--outdir", fastq_dir, "--threads", nproc],
-        capture_output=True, text=True
+        capture_output=True, text=True, env=my_env
     )
     logger.info(fasterq_result.stdout)
     logger.warning(fasterq_result.stderr)
@@ -74,7 +77,7 @@ def consume_message(msg_body):
         ["salmon", "--help"],
         #  "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
         #  "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
-        capture_output=True, text=True
+        capture_output=True, text=True, env=my_env
     )
     logger.info(salmon_result.stdout)
     logger.warning(salmon_result.stderr)
@@ -90,7 +93,7 @@ def consume_message(msg_body):
     logger.info("DESeq2 starting")
     deseq2_result = subprocess.run(
         ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id],
-        capture_output=True, text=True
+        capture_output=True, text=True, shell=True
     )
     logger.info(deseq2_result.stdout)
     logger.warning(deseq2_result.stderr)
