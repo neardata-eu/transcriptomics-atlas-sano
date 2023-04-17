@@ -5,6 +5,23 @@ resource "aws_sqs_queue" "NearData_queue" {
   receive_wait_time_seconds  = 5
   visibility_timeout_seconds = 2700  # TODO fine-tune
 
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.NearData_deadletter_queue.arn
+    maxReceiveCount     = 1
+  })
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_sqs_queue" "NearData_deadletter_queue" {
+  name                       = "NearData_deadletter_queue"
+  max_message_size           = 2048
+  message_retention_seconds  = 604800
+  receive_wait_time_seconds  = 5
+  visibility_timeout_seconds = 3600  # TODO fine-tune
+
   tags = {
     Project = "NearData"
   }
