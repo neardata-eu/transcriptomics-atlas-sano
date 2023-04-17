@@ -1,5 +1,5 @@
-resource "aws_sqs_queue" "neardata_queue" {
-  name                       = "neardata_queue"
+resource "aws_sqs_queue" "NearData_queue" {
+  name                       = "NearData_queue"
   max_message_size           = 2048
   message_retention_seconds  = 3600
   receive_wait_time_seconds  = 5
@@ -21,7 +21,7 @@ resource "aws_sqs_queue" "neardata_queue" {
 resource "aws_ssm_parameter" "queue_name" {
   name  = "/neardata/queue_name"
   type  = "String"
-  value = aws_sqs_queue.neardata_queue.name
+  value = aws_sqs_queue.NearData_queue.name
   tags  = {
     Project = "NearData"
   }
@@ -38,7 +38,7 @@ resource "aws_ssm_parameter" "s3_bucket" {
 
 
 resource "aws_security_group" "neardata_sg" {
-  name   = "neardata_sg"
+  name   = "NearData_SG"
   vpc_id = aws_vpc.neardata_vpc.id
 
   ingress {
@@ -54,6 +54,10 @@ resource "aws_security_group" "neardata_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = {
+    Name    = "NearData_SG"
+    Project = "NearData"
+  }
 }
 
 resource "aws_iam_instance_profile" "labRole_profile" {
@@ -63,7 +67,7 @@ resource "aws_iam_instance_profile" "labRole_profile" {
 
 resource "aws_launch_template" "neardata_lt" {
   name          = "neardata_lt"
-  image_id      = "ami-0e8c160beeea8398b"
+  image_id      = "ami-046afd7a5a763c01f"
   instance_type = "m6a.large"
   key_name      = "vockey"
 
@@ -73,8 +77,8 @@ resource "aws_launch_template" "neardata_lt" {
     device_name = "/dev/sda1"  # ROOT
 
     ebs {
-      volume_size = 150
-      volume_type = "gp3"
+      volume_size           = 150
+      volume_type           = "gp3"
       delete_on_termination = "true"
     }
   }
@@ -87,10 +91,14 @@ resource "aws_launch_template" "neardata_lt" {
   iam_instance_profile {
     arn = aws_iam_instance_profile.labRole_profile.arn
   }
+
+  tags = {
+    Project = "NearData"
+  }
 }
 
 resource "aws_autoscaling_group" "neardata_asg" {
-  name                = "neardata_asg"
+  name                = "NearData_asg"
   max_size            = 3
   min_size            = 1
   desired_capacity    = 1
@@ -101,5 +109,3 @@ resource "aws_autoscaling_group" "neardata_asg" {
     version = "$Latest"
   }
 }
-
-
