@@ -50,7 +50,7 @@ def consume_message(msg_body):
     logger.info(f"Starting prefetch of {srr_id}")
     prefetch_result = subprocess.run(
         ["prefetch", srr_id],  # TODO replace with S3 cpy if file available in bucket
-        capture_output=True, text=True, env=my_env
+        capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     logger.info(prefetch_result.stdout)
     logger.warning(prefetch_result.stderr)
@@ -62,7 +62,7 @@ def consume_message(msg_body):
     logger.info("Starting unpacking the SRR file using fasterq-dump")
     fasterq_result = subprocess.run(
         ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
-        capture_output=True, text=True, env=my_env
+        capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     logger.info(fasterq_result.stdout)
     logger.warning(fasterq_result.stderr)
@@ -76,7 +76,7 @@ def consume_message(msg_body):
     salmon_result = subprocess.run(
         ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
          "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
-        capture_output=True, text=True, env=my_env
+        capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     logger.info(salmon_result.stdout)
     logger.warning(salmon_result.stderr)
@@ -91,8 +91,8 @@ def consume_message(msg_body):
 
     logger.info("DESeq2 starting")
     deseq2_result = subprocess.run(
-        ["Rscript", "DESeq2/salmon_to_deseq.R", srr_id],
-        capture_output=True, text=True, shell=True
+        ["Rscript", "/home/ubuntu/DESeq2/count_normalization.R", srr_id],
+        capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     logger.info(deseq2_result.stdout)
     logger.warning(deseq2_result.stderr)
