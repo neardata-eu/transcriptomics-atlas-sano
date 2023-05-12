@@ -54,6 +54,9 @@ def consume_message(msg_body):
     )
     logger.info(prefetch_result.stdout)
     logger.warning(prefetch_result.stderr)
+    if prefetch_result.returncode != 0:
+        logger.error("Unpacking failed")
+        exit(0)
     logger.info(f"Prefetched {srr_id}")
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
@@ -66,6 +69,9 @@ def consume_message(msg_body):
     )
     logger.info(fasterq_result.stdout)
     logger.warning(fasterq_result.stderr)
+    if fasterq_result.returncode != 0:
+        logger.error("Unpacking failed")
+        exit(0)
     logger.info("Unpacking finished")
 
     ###  Quantification using Salmon ###
@@ -78,6 +84,9 @@ def consume_message(msg_body):
          "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
+    if salmon_result.returncode != 0:
+        logger.error("Salmon failed")
+        exit(0)
     logger.info(salmon_result.stdout)
     logger.warning(salmon_result.stderr)
 
@@ -96,6 +105,9 @@ def consume_message(msg_body):
     )
     logger.info(deseq2_result.stdout)
     logger.warning(deseq2_result.stderr)
+    if deseq2_result.returncode != 0:
+        logger.error("DESeq2 failed")
+        exit(0)
     logger.info("DESeq2 finished")
 
     ### Upload normalized counts to S3 ###
