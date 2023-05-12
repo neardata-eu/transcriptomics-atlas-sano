@@ -12,7 +12,7 @@ my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu
 
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
-nproc = int(subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout)
+nproc = subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout.strip()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ def consume_message(msg_body):
     ###  Downloading SRR file ###            # TODO extract each step to separate function?
     logger.info(f"Starting prefetch of {srr_id}")
     prefetch_result = subprocess.run(
-        ["prefetch", msg_body],  # TODO replace with S3 cpy if file available in bucket
+        ["prefetch", srr_id],  # TODO replace with S3 cpy if file available in bucket
         capture_output=True, text=True, env=my_env
     )
     logger.info(prefetch_result.stdout)
@@ -61,7 +61,7 @@ def consume_message(msg_body):
     os.makedirs(fastq_dir, exist_ok=True)
     logger.info("Starting unpacking the SRR file using fasterq-dump")
     fasterq_result = subprocess.run(
-        ["fasterq-dump", "--help"],  # ,  srr_id, "--outdir", fastq_dir, "--threads", nproc],
+        ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
         capture_output=True, text=True, env=my_env
     )
     logger.info(fasterq_result.stdout)
@@ -74,9 +74,8 @@ def consume_message(msg_body):
     os.makedirs(quant_dir, exist_ok=True)
     logger.info("Quantification starting")
     salmon_result = subprocess.run(
-        ["salmon", "--help"],
-        #  "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-        #  "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
+        ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
+         "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
         capture_output=True, text=True, env=my_env
     )
     logger.info(salmon_result.stdout)
@@ -87,7 +86,7 @@ def consume_message(msg_body):
     ### Run R script on quant.sf
 
     # Update samples.txt script with correct SRR_ID
-    with open("/home/ubuntu/DESeq2/samples.txt", "w") as f:
+    with open("/home/ubuntu/DESeq2/samples.txt", "w+") as f:
         f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
 
     logger.info("DESeq2 starting")
@@ -123,7 +122,7 @@ def consume_message(msg_body):
 if __name__ == "__main__":
     logger.info("Awaiting messages")
     while True:
-        messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
+        messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)  # TODO check if message is indeed SRA id
         for message in messages:
             logger.info(f"Received msg={message.body}")
             consume_message(message.body)
