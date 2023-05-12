@@ -41,3 +41,10 @@ sudo apt-get install libopenblas-dev -y
 sudo chmod o+w /usr/local/lib/R/site-library/
 Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager"))'
 Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
+
+
+### CWAGENT
+sudo wget https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb
+sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:cloudwatch_agent_config_neardata -s
+sudo rm amazon-cloudwatch-agent.deb
