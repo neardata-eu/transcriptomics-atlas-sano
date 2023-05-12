@@ -22,7 +22,7 @@ names(files) = samples$run
 
 tx2gene <- read_delim("/home/ubuntu/DESeq2/tx2gene.gencode.v42.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
-output_dir = "/home/ubuntu/R_output/"
+output_dir = "/istore/R_output/"
 dir.create(output_dir)
 
 txi = tximport(files, type="salmon", tx2gene=tx2gene)

@@ -9,6 +9,7 @@ import watchtower, logging
 
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
+work_dir = "/istore"
 
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
@@ -60,7 +61,7 @@ def consume_message(msg_body):
     logger.info(f"Prefetched {srr_id}")
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
-    fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
+    fastq_dir = f"/istore/fastq/{srr_id}"
     os.makedirs(fastq_dir, exist_ok=True)
     logger.info("Starting unpacking the SRR file using fasterq-dump")
     fasterq_result = subprocess.run(
@@ -75,8 +76,8 @@ def consume_message(msg_body):
     logger.info("Unpacking finished")
 
     ###  Quantification using Salmon ###
-    index_path = "/home/ubuntu/index/human_transcriptome_index"
-    quant_dir = f"/home/ubuntu/salmon/{srr_id}"
+    index_path = "/home/ubuntu/salmon/human_transcriptome_index"
+    quant_dir = f"/istore/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
     logger.info("Quantification starting")
     salmon_result = subprocess.run(
@@ -112,7 +113,7 @@ def consume_message(msg_body):
 
     ### Upload normalized counts to S3 ###
     logger.info("S3 upload starting")
-    # s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
+    # s3.meta.client.upload_file(f'/istore/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
     #                            f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
     logger.info("S3 upload finished")
 
@@ -124,10 +125,10 @@ def consume_message(msg_body):
         logger.info(f"Removed files in {path}")
 
     logger.info("Starting removing generated files")
-    # clean_dir("/home/ubuntu/sratoolkit/sra")
-    # clean_dir("/home/ubuntu/fastq")
-    # clean_dir("/home/ubuntu/salmon")
-    clean_dir("/home/ubuntu/R_output")
+    clean_dir("/istore/sratoolkit/local/sra")
+    clean_dir("/istore/fastq")
+    clean_dir("/istore/salmon")
+    clean_dir("/istore/R_output")
     logger.info("Finished removing generated files")
 
 
