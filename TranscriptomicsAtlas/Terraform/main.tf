@@ -1,9 +1,9 @@
 resource "aws_sqs_queue" "NearData_queue" {
   name                       = "NearData_queue"
   max_message_size           = 2048
-  message_retention_seconds  = 3600
+  message_retention_seconds  = 10800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 2700  # TODO fine-tune
+  visibility_timeout_seconds = 10800
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.NearData_deadletter_queue.arn
@@ -47,7 +47,7 @@ resource "aws_ssm_parameter" "queue_name" {
 resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/neardata/s3_bucket_name"
   type  = "String"
-  value = "neardata-bucket-123"  # aws_s3_bucket.neardata_bucket.name
+  value = "neardata-bucket-1234"  # aws_s3_bucket.neardata_bucket.name
   tags  = {
     Project = "NearData"
   }
@@ -62,7 +62,7 @@ resource "aws_security_group" "neardata_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["5.173.33.80/32", "195.150.12.215/32", "5.173.48.40/32"]
+    cidr_blocks = ["5.173.33.80/32", "195.150.12.215/32", "5.173.48.40/32", "5.173.33.64/32"]
   }
 
   egress {
@@ -84,25 +84,20 @@ resource "aws_iam_instance_profile" "labRole_profile" {
 
 resource "aws_launch_template" "neardata_lt" {
   name          = "neardata_lt"
-  image_id      = "ami-046afd7a5a763c01f"
+  image_id      = "ami-045fa30cd6f3b8f07"
   instance_type = "m6a.large"
   key_name      = "vockey"
 
-  user_data = base64encode(file("init.sh"))
-
-  block_device_mappings {
-    device_name = "/dev/sda1"  # ROOT
-
-    ebs {
-      volume_size           = 150
-      volume_type           = "gp3"
-      delete_on_termination = "true"
-    }
-  }
+  user_data     = base64encode(file("init.sh"))
+  ebs_optimized = true
 
   network_interfaces {
     security_groups             = [aws_security_group.neardata_sg.id]
     associate_public_ip_address = true
+  }
+
+  monitoring {
+    enabled = true
   }
 
   iam_instance_profile {
@@ -111,6 +106,14 @@ resource "aws_launch_template" "neardata_lt" {
 
   tags = {
     Project = "NearData"
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = {
+      Name    = "NearData_v8-lt"
+      Project = "NearData"
+    }
   }
 }
 
