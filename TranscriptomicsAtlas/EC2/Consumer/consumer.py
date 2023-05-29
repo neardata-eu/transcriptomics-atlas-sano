@@ -1,6 +1,5 @@
 import os
 import subprocess
-from pathlib import Path
 
 import boto3
 import botocore
@@ -9,6 +8,7 @@ import watchtower, logging
 
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
+work_dir = "/home/ubuntu"
 
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
@@ -31,14 +31,23 @@ s3_bucket_paramter = ssm.get_parameter(Name="/neardata/s3_bucket_name", WithDecr
 s3_bucket_name = s3_bucket_paramter['Parameter']['Value']
 
 
-def consume_message(msg_body):
-    srr_id = msg_body
+def clean_dir(path):
+    for root, dirs, files in os.walk(path, topdown=False):
+        for file_name in files:
+            file_path = os.path.join(root, file_name)
+            os.remove(file_path)
+        for dir_name in dirs:
+            dir_path = os.path.join(root, dir_name)
+            os.rmdir(dir_path)
+    logger.info(f"Removed files in {path}")
 
+
+def consume_message(srr_id):
     ### Check if file exists in S3, if yes then skip ###
     try:  # TODO replace try-except with listing files?  https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
         logger.info("Checking if the pipeline has already been run")
         s3.Object(s3_bucket_name, f'normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt').load()
-        logger.info("File exisits, exiting")
+        logger.info("File exists, exiting")
         # return
     except botocore.exceptions.ClientError as e:
         if e.response['Error']['Code'] != "404":
@@ -47,22 +56,22 @@ def consume_message(msg_body):
         logger.info("File not found, starting the pipeline")
 
     ###  Downloading SRR file ###            # TODO extract each step to separate function?
-    logger.info(f"Starting prefetch of {srr_id}")
+    logger.info(f"Prefetch started")
     prefetch_result = subprocess.run(
-        ["prefetch", srr_id],  # TODO replace with S3 cpy if file available in bucket
+        ["prefetch", srr_id],  # TODO test S3 cp performance if file available in bucket
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     logger.info(prefetch_result.stdout)
     logger.warning(prefetch_result.stderr)
     if prefetch_result.returncode != 0:
-        logger.error("Unpacking failed")
+        logger.error("Prefetch failed")
         exit(0)
-    logger.info(f"Prefetched {srr_id}")
+    logger.info(f"Prefetch finished")
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
     fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
     os.makedirs(fastq_dir, exist_ok=True)
-    logger.info("Starting unpacking the SRR file using fasterq-dump")
+    logger.info("Fasterq-dump started")
     fasterq_result = subprocess.run(
         ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
         capture_output=True, text=True, env=my_env, cwd=work_dir
@@ -70,30 +79,28 @@ def consume_message(msg_body):
     logger.info(fasterq_result.stdout)
     logger.warning(fasterq_result.stderr)
     if fasterq_result.returncode != 0:
-        logger.error("Unpacking failed")
+        logger.error("Fasterq-dump failed")
         exit(0)
-    logger.info("Unpacking finished")
+    logger.info("Fasterq-dump finished")
 
     ###  Quantification using Salmon ###
     index_path = "/home/ubuntu/index/human_transcriptome_index"
     quant_dir = f"/home/ubuntu/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
-    logger.info("Quantification starting")
+    logger.info("SALMON starting")
     salmon_result = subprocess.run(
         ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
          "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
-    if salmon_result.returncode != 0:
-        logger.error("Salmon failed")
-        exit(0)
     logger.info(salmon_result.stdout)
     logger.warning(salmon_result.stderr)
-
-    logger.info("Quantification finished")
+    if salmon_result.returncode != 0:
+        logger.error("SALMON failed")
+        exit(0)
+    logger.info("SALMON finished")
 
     ### Run R script on quant.sf
-
     # Update samples.txt script with correct SRR_ID
     with open("/home/ubuntu/DESeq2/samples.txt", "w+") as f:
         f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
@@ -112,23 +119,9 @@ def consume_message(msg_body):
 
     ### Upload normalized counts to S3 ###
     logger.info("S3 upload starting")
-    # s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
-    #                            f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
+    s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
+                               f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
     logger.info("S3 upload finished")
-
-    ### Clean all input and output files ###
-    def clean_dir(path):
-        for f in Path(path).glob("*"):
-            if f.is_file():
-                f.unlink()
-        logger.info(f"Removed files in {path}")
-
-    logger.info("Starting removing generated files")
-    # clean_dir("/home/ubuntu/sratoolkit/sra")
-    # clean_dir("/home/ubuntu/fastq")
-    # clean_dir("/home/ubuntu/salmon")
-    clean_dir("/home/ubuntu/R_output")
-    logger.info("Finished removing generated files")
 
 
 if __name__ == "__main__":
@@ -139,3 +132,13 @@ if __name__ == "__main__":
             logger.info(f"Received msg={message.body}")
             consume_message(message.body)
             message.delete()
+
+            ### Clean all input and output files ###
+            logger.info("Starting removing generated files")
+            clean_dir("/home/ubuntu/sratoolkit/local/sra")
+            clean_dir("/home/ubuntu/fastq")
+            clean_dir("/home/ubuntu/salmon")
+            clean_dir("/home/ubuntu/R_output")
+            logger.info("Finished removing generated files")
+
+            logger.info("Processed and deleted msg. Awaiting next one")
