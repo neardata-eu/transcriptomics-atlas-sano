@@ -8,7 +8,7 @@ sudo apt-get install awscli -y
 
 ### SRA-TOOLKIT
 mkdir -p sratoolkit/local
-wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/current/sratoolkit.current-ubuntu64.tar.gz -O - | tar -zx -C /home/ubuntu/sratoolkit/
+wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -O - | tar -zx -C /home/ubuntu/sratoolkit/
 #TODO check how to apply config using cli
 #vdb-config -pre
 #vdb-config --report-cloud-indentity yes  # TODO is it needed?
@@ -39,7 +39,7 @@ sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev -y
 sudo apt-get install libopenblas-dev -y
 
 sudo chmod o+w /usr/local/lib/R/site-library/
-Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager"))'
+Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'
 Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
 
 
