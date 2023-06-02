@@ -1,3 +1,11 @@
+data "aws_s3_bucket" "NearData_results_bucket_name" {
+  bucket = "neardata-bucket-1234"
+}
+
+data "aws_iam_instance_profile" "labRole_profile" {
+  name = "LabInstanceProfile"
+}
+
 resource "aws_sqs_queue" "NearData_queue" {
   name                       = "NearData_queue"
   max_message_size           = 2048
@@ -20,20 +28,12 @@ resource "aws_sqs_queue" "NearData_deadletter_queue" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 3600  # TODO fine-tune
+  visibility_timeout_seconds = 10800
 
   tags = {
     Project = "NearData"
   }
 }
-
-#resource "aws_s3_bucket" "neardata_bucket" {
-#  bucket_prefix = "neardata-bucket-"
-#
-#  tags = {
-#    Project = "NearData"
-#  }
-#}
 
 resource "aws_ssm_parameter" "queue_name" {
   name  = "/neardata/queue_name"
@@ -47,12 +47,11 @@ resource "aws_ssm_parameter" "queue_name" {
 resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/neardata/s3_bucket_name"
   type  = "String"
-  value = "neardata-bucket-1234"  # aws_s3_bucket.neardata_bucket.name
+  value = data.aws_s3_bucket.NearData_results_bucket_name.bucket
   tags  = {
     Project = "NearData"
   }
 }
-
 
 resource "aws_security_group" "neardata_sg" {
   name   = "NearData_SG"
@@ -62,7 +61,7 @@ resource "aws_security_group" "neardata_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["5.173.33.80/32", "195.150.12.215/32", "5.173.48.40/32", "5.173.33.64/32"]
+    cidr_blocks = ["195.150.12.215/32"]
   }
 
   egress {
@@ -77,17 +76,11 @@ resource "aws_security_group" "neardata_sg" {
   }
 }
 
-resource "aws_iam_instance_profile" "labRole_profile" {
-  name = "labRole_profile"
-  role = "LabRole"  # FIXME later
-}
-
 resource "aws_launch_template" "neardata_lt" {
   name          = "neardata_lt"
-  image_id      = "ami-045fa30cd6f3b8f07"
+  image_id      = "ami-0bbfdbe3656d3a4bb"
   instance_type = "m6a.large"
   key_name      = "vockey"
-
   user_data     = base64encode(file("init.sh"))
   ebs_optimized = true
 
@@ -101,7 +94,7 @@ resource "aws_launch_template" "neardata_lt" {
   }
 
   iam_instance_profile {
-    arn = aws_iam_instance_profile.labRole_profile.arn
+    arn = data.aws_iam_instance_profile.labRole_profile.arn
   }
 
   tags = {
@@ -111,7 +104,7 @@ resource "aws_launch_template" "neardata_lt" {
   tag_specifications {
     resource_type = "instance"
     tags          = {
-      Name    = "NearData_v8-lt"
+      Name    = "NearData_v12-lt"
       Project = "NearData"
     }
   }
@@ -119,9 +112,9 @@ resource "aws_launch_template" "neardata_lt" {
 
 resource "aws_autoscaling_group" "neardata_asg" {
   name                = "NearData_asg"
-  max_size            = 3
+  max_size            = 5
   min_size            = 1
-  desired_capacity    = 1
+  desired_capacity    = 4
   vpc_zone_identifier = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id, aws_subnet.subnet_3.id, aws_subnet.subnet_4.id]
 
   launch_template {
