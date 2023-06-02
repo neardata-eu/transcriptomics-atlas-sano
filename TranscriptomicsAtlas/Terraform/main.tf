@@ -2,6 +2,10 @@ data "aws_s3_bucket" "NearData_results_bucket_name" {
   bucket = "neardata-bucket-1234"
 }
 
+data "aws_s3_bucket" "NearData_metadata_bucket_name" {
+  bucket = "neardata-bucket-1234-metadata"
+}
+
 data "aws_iam_instance_profile" "labRole_profile" {
   name = "LabInstanceProfile"
 }
@@ -48,6 +52,15 @@ resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/neardata/s3_bucket_name"
   type  = "String"
   value = data.aws_s3_bucket.NearData_results_bucket_name.bucket
+  tags  = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_ssm_parameter" "s3_bucket_metadata" {
+  name  = "/neardata/s3_bucket_metadata_name"
+  type  = "String"
+  value = data.aws_s3_bucket.NearData_metadata_bucket_name.bucket
   tags  = {
     Project = "NearData"
   }
