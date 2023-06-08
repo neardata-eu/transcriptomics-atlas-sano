@@ -125,21 +125,21 @@ class SalmonPipeline:
     def start(self):
         self.check_if_results_exist_in_s3()
 
-        self.metadata["timestamps"]["1st_phase_prefetch"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        prefetch(self.srr_id)
-        self.metadata["timestamps"]["1st_phase_prefetch"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.make_timestamps(
+            prefetch, self.srr_id
+        )
 
-        self.metadata["timestamps"]["2nd_phase_fasterq"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        fasterq_dump(self.srr_id, self.fastq_dir)
-        self.metadata["timestamps"]["2nd_phase_fasterq"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.make_timestamps(
+            fasterq_dump, self.srr_id, self.fastq_dir
+        )
 
-        self.metadata["timestamps"]["3rd_phase_salmon"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        salmon(self.srr_id, self.fastq_dir)
-        self.metadata["timestamps"]["3rd_phase_salmon"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.make_timestamps(
+            salmon, self.srr_id, self.fastq_dir
+        )
 
-        self.metadata["timestamps"]["4th_phase_DESeq2"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        deseq2(self.srr_id)
-        self.metadata["timestamps"]["4th_phase_DESeq2"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.make_timestamps(
+            deseq2, self.srr_id
+        )
 
         self.upload_normalized_counts_to_s3()
         self.gather_metadata()
@@ -158,6 +158,11 @@ class SalmonPipeline:
                 logger.warning(e)
                 return
             logger.info("File not found, starting the pipeline")
+
+    def make_timestamps(self, pipeline_func, *args, **kwargs):
+        self.metadata["timestamps"][pipeline_func.__name__]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        pipeline_func(*args, **kwargs)
+        self.metadata["timestamps"][pipeline_func.__name__]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
