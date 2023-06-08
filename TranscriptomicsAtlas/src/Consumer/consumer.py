@@ -110,75 +110,81 @@ def deseq2(srr_id):
     return deseq2_result
 
 
-def consume_message(srr_id):
+class SalmonPipeline:
+    srr_id: str
+    fastq_dir: str
+    metadata_dir: str = "/home/ubuntu/metadata"
     metadata = nested_dict()
-    ### Check if file exists in S3, if yes then skip ###
-    try:  # TODO replace try-except with listing files?  https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
-        logger.info("Checking if the pipeline has already been run")
-        s3.Object(s3_bucket_name, f'normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt').load()
-        logger.info("Results exist in S3 bucket, exiting")
-        # return
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] != "404":
-            logger.warning(e)
-            return
-        logger.info("File not found, starting the pipeline")
 
-    ###  Downloading SRR file ###
-    metadata["timestamps"]["1st_phase_prefetch"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    def __init__(self, srr_id):
+        self.srr_id = srr_id
+        self.fastq_dir = f"/home/ubuntu/fastq/{self.srr_id}"
+        os.makedirs(self.metadata_dir, exist_ok=True)
+        os.makedirs(self.fastq_dir, exist_ok=True)
 
-    prefetch(srr_id)
+    def start(self):
+        self.check_if_results_exist_in_s3()
 
-    metadata["timestamps"]["1st_phase_prefetch"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.metadata["timestamps"]["1st_phase_prefetch"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        prefetch(self.srr_id)
+        self.metadata["timestamps"]["1st_phase_prefetch"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-    ###  Unpacking SRR to .fastq using fasterq-dump ###
-    metadata["timestamps"]["2nd_phase_fasterq"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
-    os.makedirs(fastq_dir, exist_ok=True)
+        self.metadata["timestamps"]["2nd_phase_fasterq"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        fasterq_dump(self.srr_id, self.fastq_dir)
+        self.metadata["timestamps"]["2nd_phase_fasterq"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-    fasterq_dump(srr_id, fastq_dir)
+        self.metadata["timestamps"]["3rd_phase_salmon"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        salmon(self.srr_id, self.fastq_dir)
+        self.metadata["timestamps"]["3rd_phase_salmon"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-    metadata["timestamps"]["2nd_phase_fasterq"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.metadata["timestamps"]["4th_phase_DESeq2"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        deseq2(self.srr_id)
+        self.metadata["timestamps"]["4th_phase_DESeq2"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
-    ###  Quantification using Salmon ###
-    metadata["timestamps"]["3rd_phase_salmon"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.upload_normalized_counts_to_s3()
+        self.gather_metadata()
+        self.upload_metadata()
 
-    salmon(srr_id, fastq_dir)
+    def check_if_results_exist_in_s3(self):
+        # TODO replace try-except with listing files?  \
+        #   https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
+        try:
+            logger.info("Checking if the pipeline has already been run")
+            s3.Object(s3_bucket_name, f'normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt').load()
+            logger.info("Results exist in S3 bucket, exiting")
+            # return
+        except botocore.exceptions.ClientError as e:
+            if e.response['Error']['Code'] != "404":
+                logger.warning(e)
+                return
+            logger.info("File not found, starting the pipeline")
 
-    metadata["timestamps"]["3rd_phase_salmon"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    def upload_normalized_counts_to_s3(self):
+        logger.info("S3 upload starting")
+        s3.meta.client.upload_file(f'/home/ubuntu/R_output/{self.srr_id}_normalized_counts.txt', s3_bucket_name,
+                                   f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
+        logger.info("S3 upload finished")
 
-    ### Run R script on quant.sf
-    # Update samples.txt script with correct SRR_ID
-    metadata["timestamps"]["4th_phase_DESeq2"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    deseq2(srr_id)
-    metadata["timestamps"]["4th_phase_DESeq2"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+    def gather_metadata(self):
+        logger.info("Measuring file sizes")
+        srr_filesize = os.stat(f"/home/ubuntu/sratoolkit/local/sra/{self.srr_id}.sra").st_size
+        fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + os.stat(
+            f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
 
-    ### Upload normalized counts to S3 ###
-    logger.info("S3 upload starting")
-    s3.meta.client.upload_file(f'/home/ubuntu/R_output/{srr_id}_normalized_counts.txt', s3_bucket_name,
-                               f"normalized_counts/{srr_id}/{srr_id}_normalized_counts.txt")
-    logger.info("S3 upload finished")
+        self.metadata["instance_id"] = instance_id
+        self.metadata["SRR_id"] = self.srr_id
+        self.metadata["SRR_filesize_bytes"] = srr_filesize
+        self.metadata["fastq_filesize_bytes"] = fastq_filesize
 
-    # Metadata and upload
-    logger.info("Measuring file sizes")
-    srr_filesize = os.stat(f"/home/ubuntu/sratoolkit/local/sra/{srr_id}.sra").st_size
-    fastq_filesize = os.stat(f"{fastq_dir}/{srr_id}_1.fastq").st_size + os.stat(f"{fastq_dir}/{srr_id}_2.fastq").st_size
+        logger.info("Saving metadata")
+        with open(f'{self.metadata_dir}/{self.srr_id}_metadata.json', "w+") as f:
+            json.dump(self.metadata, f, indent=4)
 
-    metadata["instance_id"] = instance_id
-    metadata["SRR_id"] = srr_id
-    metadata["SRR_filesize_bytes"] = srr_filesize
-    metadata["fastq_filesize_bytes"] = fastq_filesize
-
-    logger.info("Saving metadata")
-    metadata_dir = "/home/ubuntu/metadata"
-    os.makedirs(metadata_dir, exist_ok=True)
-    with open(f'{metadata_dir}/{srr_id}_metadata.json', "w+") as f:
-        json.dump(metadata, f, indent=4)
-
-    logger.info("S3 upload metadata starting")
-    s3.meta.client.upload_file(f'{metadata_dir}/{srr_id}_metadata.json', s3_bucket_metadata_name,
-                               f"{srr_id}/{srr_id}_metadata.json")
-    logger.info("S3 upload metadata finished")
+    def upload_metadata(self):
+        logger.info("S3 upload metadata starting")
+        s3.meta.client.upload_file(f'{self.metadata_dir}/{self.srr_id}_metadata.json', s3_bucket_metadata_name,
+                                   f"{self.srr_id}/{self.srr_id}_metadata.json")
+        logger.info("S3 upload metadata finished")
 
 
 if __name__ == "__main__":
@@ -188,7 +194,7 @@ if __name__ == "__main__":
                                           WaitTimeSeconds=5)  # TODO check if message is indeed SRA id
         for message in messages:
             logger.info(f"Received msg={message.body}")
-            consume_message(message.body)
+            SalmonPipeline(message.body).start()
             message.delete()
 
             ### Clean all input and output files ###
