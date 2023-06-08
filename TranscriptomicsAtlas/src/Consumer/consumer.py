@@ -118,7 +118,7 @@ def consume_message(srr_id):
     # Update samples.txt script with correct SRR_ID
     metadata["timestamps"]["4th_phase_DESeq2"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     with open("/home/ubuntu/DESeq2/samples.txt", "w+") as f:
-        f.write(f"""samples	pop	center	run	condition\n{srr_id}	1.1	HPC	{srr_id}	stimulus""")
+        f.write(f"""samples	pop	center run condition\n{srr_id} 1.1 HPC {srr_id}	stimulus""")
 
     logger.info("DESeq2 starting")
     deseq2_result = subprocess.run(
