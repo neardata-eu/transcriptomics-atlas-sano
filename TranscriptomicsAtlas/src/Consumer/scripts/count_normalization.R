@@ -13,7 +13,7 @@ control = "control"
 
 # import salmon data to DESeq2
 dir = "/home/ubuntu/salmon"
-samples_all = read.table(file = "/home/ubuntu/DESeq2/samples.txt", header = TRUE,quote = '\t')
+samples_all =data.frame(samples=SRX, pop = 1.1, center = "HPC", run = SRX, condition = "stimulus")
 rownames(samples_all) = samples_all$run
 
 samples = filter(samples_all, condition==paste(stimulous)|condition==paste(control))
