@@ -43,7 +43,8 @@ resource "aws_ssm_parameter" "queue_name" {
   name  = "/neardata/queue_name"
   type  = "String"
   value = aws_sqs_queue.NearData_queue.name
-  tags  = {
+
+  tags = {
     Project = "NearData"
   }
 }
@@ -52,7 +53,8 @@ resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/neardata/s3_bucket_name"
   type  = "String"
   value = data.aws_s3_bucket.NearData_results_bucket_name.bucket
-  tags  = {
+
+  tags = {
     Project = "NearData"
   }
 }
@@ -61,14 +63,15 @@ resource "aws_ssm_parameter" "s3_bucket_metadata" {
   name  = "/neardata/s3_bucket_metadata_name"
   type  = "String"
   value = data.aws_s3_bucket.NearData_metadata_bucket_name.bucket
-  tags  = {
+
+  tags = {
     Project = "NearData"
   }
 }
 
-resource "aws_security_group" "neardata_sg" {
+resource "aws_security_group" "NearData_sg" {
   name   = "NearData_SG"
-  vpc_id = aws_vpc.neardata_vpc.id
+  vpc_id = aws_vpc.NearData_VPC.id
 
   ingress {
     from_port   = 22
@@ -83,14 +86,15 @@ resource "aws_security_group" "neardata_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   tags = {
     Name    = "NearData_SG"
     Project = "NearData"
   }
 }
 
-resource "aws_launch_template" "neardata_lt" {
-  name          = "neardata_lt"
+resource "aws_launch_template" "NearData_lt" {
+  name          = "NearData_lt"
   image_id      = "ami-0bbfdbe3656d3a4bb"
   instance_type = "m6a.large"
   key_name      = "vockey"
@@ -98,7 +102,7 @@ resource "aws_launch_template" "neardata_lt" {
   ebs_optimized = true
 
   network_interfaces {
-    security_groups             = [aws_security_group.neardata_sg.id]
+    security_groups             = [aws_security_group.NearData_sg.id]
     associate_public_ip_address = true
   }
 
@@ -116,22 +120,24 @@ resource "aws_launch_template" "neardata_lt" {
 
   tag_specifications {
     resource_type = "instance"
-    tags          = {
+
+    tags = {
       Name    = "NearData_v12-lt"
       Project = "NearData"
     }
   }
 }
 
-resource "aws_autoscaling_group" "neardata_asg" {
-  name                = "NearData_asg"
-  max_size            = 5
-  min_size            = 1
-  desired_capacity    = 4
-  vpc_zone_identifier = [aws_subnet.subnet_1.id, aws_subnet.subnet_2.id, aws_subnet.subnet_3.id, aws_subnet.subnet_4.id]
+resource "aws_autoscaling_group" "NearData_asg" {
+  name                      = "NearData_asg"
+  min_size                  = 1
+  desired_capacity          = 4
+  max_size                  = 5
+  vpc_zone_identifier       = values(aws_subnet.NearData_Subnets)[*].id
+  wait_for_capacity_timeout = 0
 
   launch_template {
-    id      = aws_launch_template.neardata_lt.id
+    id      = aws_launch_template.NearData_lt.id
     version = "$Latest"
   }
 }
