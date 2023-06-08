@@ -148,7 +148,7 @@ def consume_message(srr_id):
 
     logger.info("Saving metadata")
     metadata_dir = "/home/ubuntu/metadata"
-    os.makedirs(quant_dir, exist_ok=True)
+    os.makedirs(metadata_dir, exist_ok=True)
     with open(f'{metadata_dir}/{srr_id}_metadata.json', "w+") as f:
         json.dump(metadata, f, indent=4)
 
