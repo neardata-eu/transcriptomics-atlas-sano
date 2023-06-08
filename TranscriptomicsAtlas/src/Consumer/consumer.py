@@ -1,14 +1,14 @@
 import os
 import json
 import subprocess
+from functools import wraps
+from datetime import datetime
+from collections import defaultdict
 
 import boto3
 import botocore
 import requests
 import watchtower, logging
-from datetime import datetime
-from collections import defaultdict
-from functools import wraps
 
 nested_dict = lambda: defaultdict(nested_dict)  # NOQA
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
@@ -24,7 +24,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.addHandler(watchtower.CloudWatchLogHandler(send_interval=1))
 
-#  Retrieve queue_name from Parameter Store
 ssm = boto3.client("ssm")
 sqs = boto3.resource("sqs")
 s3 = boto3.resource('s3')
@@ -144,6 +143,7 @@ class SalmonPipeline:
         self.upload_normalized_counts_to_s3()
         self.gather_metadata()
         self.upload_metadata()
+        self.clean()
 
     def check_if_results_exist_in_s3(self):
         # TODO replace try-except with listing files?  \
@@ -191,23 +191,21 @@ class SalmonPipeline:
                                    f"{self.srr_id}/{self.srr_id}_metadata.json")
         logger.info("S3 upload metadata finished")
 
+    def clean(self):
+        logger.info("Starting removing generated files")
+        clean_dir("/home/ubuntu/sratoolkit/local/sra")
+        clean_dir("/home/ubuntu/fastq")
+        clean_dir("/home/ubuntu/salmon")
+        clean_dir("/home/ubuntu/R_output")
+        logger.info("Finished removing generated files")
+
 
 if __name__ == "__main__":
     logger.info("Awaiting messages")
     while True:
-        messages = queue.receive_messages(MaxNumberOfMessages=1,
-                                          WaitTimeSeconds=5)  # TODO check if message is indeed SRA id
+        messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
         for message in messages:
             logger.info(f"Received msg={message.body}")
             SalmonPipeline(message.body).start()
             message.delete()
-
-            ### Clean all input and output files ###
-            logger.info("Starting removing generated files")
-            clean_dir("/home/ubuntu/sratoolkit/local/sra")
-            clean_dir("/home/ubuntu/fastq")
-            clean_dir("/home/ubuntu/salmon")
-            clean_dir("/home/ubuntu/R_output")
-            logger.info("Finished removing generated files")
-
             logger.info("Processed and deleted msg. Awaiting next one")
