@@ -8,6 +8,7 @@ import requests
 import watchtower, logging
 from datetime import datetime
 from collections import defaultdict
+from functools import wraps
 
 nested_dict = lambda: defaultdict(nested_dict)  # NOQA
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
@@ -49,6 +50,66 @@ def clean_dir(path):
     logger.info(f"Removed files in {path}")
 
 
+def log_output(func):
+    @wraps(func)
+    def with_logging(*args, **kwargs):
+        logger.info(f"{func.__name__} started")
+
+        result = func(*args, **kwargs)
+
+        logger.info(result.stdout)
+        logger.warning(result.stderr)
+        if result.returncode != 0:
+            logger.error(f"{func.__name__} failed, exiting")
+            exit(1)
+        logger.info(f"{func.__name__} finished")
+
+        return result
+
+    return with_logging
+
+
+@log_output
+def prefetch(srr_id):
+    prefetch_result = subprocess.run(
+        ["prefetch", srr_id],
+        capture_output=True, text=True, env=my_env, cwd=work_dir
+    )
+    return prefetch_result
+
+
+@log_output
+def fasterq_dump(srr_id, fastq_dir):
+    fasterq_result = subprocess.run(
+        ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
+        capture_output=True, text=True, env=my_env, cwd=work_dir
+    )
+    return fasterq_result
+
+
+@log_output
+def salmon(srr_id, fastq_dir):
+    index_path = "/home/ubuntu/index/human_transcriptome_index"
+    quant_dir = f"/home/ubuntu/salmon/{srr_id}"
+    os.makedirs(quant_dir, exist_ok=True)
+
+    salmon_result = subprocess.run(
+        ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
+         "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
+        capture_output=True, text=True, env=my_env, cwd=work_dir
+    )
+    return salmon_result
+
+
+@log_output
+def deseq2(srr_id):
+    deseq2_result = subprocess.run(
+        ["Rscript", "/home/ubuntu/DESeq2/count_normalization.R", srr_id],
+        capture_output=True, text=True, env=my_env, cwd=work_dir
+    )
+    return deseq2_result
+
+
 def consume_message(srr_id):
     metadata = nested_dict()
     ### Check if file exists in S3, if yes then skip ###
@@ -63,71 +124,33 @@ def consume_message(srr_id):
             return
         logger.info("File not found, starting the pipeline")
 
-    ###  Downloading SRR file ###            # TODO extract each step to separate function?
+    ###  Downloading SRR file ###
     metadata["timestamps"]["1st_phase_prefetch"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    logger.info(f"Prefetch started")
-    prefetch_result = subprocess.run(
-        ["prefetch", srr_id],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-    logger.info(prefetch_result.stdout)
-    logger.warning(prefetch_result.stderr)
-    if prefetch_result.returncode != 0:
-        logger.error("Prefetch failed")
-        exit(0)
-    logger.info(f"Prefetch finished")
+
+    prefetch(srr_id)
+
     metadata["timestamps"]["1st_phase_prefetch"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     ###  Unpacking SRR to .fastq using fasterq-dump ###
     metadata["timestamps"]["2nd_phase_fasterq"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     fastq_dir = f"/home/ubuntu/fastq/{srr_id}"
     os.makedirs(fastq_dir, exist_ok=True)
-    logger.info("Fasterq-dump started")
-    fasterq_result = subprocess.run(
-        ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-    logger.info(fasterq_result.stdout)
-    logger.warning(fasterq_result.stderr)
-    if fasterq_result.returncode != 0:
-        logger.error("Fasterq-dump failed")
-        exit(0)
-    logger.info("Fasterq-dump finished")
+
+    fasterq_dump(srr_id, fastq_dir)
+
     metadata["timestamps"]["2nd_phase_fasterq"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     ###  Quantification using Salmon ###
     metadata["timestamps"]["3rd_phase_salmon"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    index_path = "/home/ubuntu/index/human_transcriptome_index"
-    quant_dir = f"/home/ubuntu/salmon/{srr_id}"
-    os.makedirs(quant_dir, exist_ok=True)
-    logger.info("SALMON starting")
-    salmon_result = subprocess.run(
-        ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-         "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-    logger.info(salmon_result.stdout)
-    logger.warning(salmon_result.stderr)
-    if salmon_result.returncode != 0:
-        logger.error("SALMON failed")
-        exit(0)
-    logger.info("SALMON finished")
+
+    salmon(srr_id, fastq_dir)
+
     metadata["timestamps"]["3rd_phase_salmon"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     ### Run R script on quant.sf
     # Update samples.txt script with correct SRR_ID
     metadata["timestamps"]["4th_phase_DESeq2"]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    logger.info("DESeq2 starting")
-    deseq2_result = subprocess.run(
-        ["Rscript", "/home/ubuntu/DESeq2/count_normalization.R", srr_id],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-    logger.info(deseq2_result.stdout)
-    logger.warning(deseq2_result.stderr)
-    if deseq2_result.returncode != 0:
-        logger.error("DESeq2 failed")
-        exit(0)
-    logger.info("DESeq2 finished")
+    deseq2(srr_id)
     metadata["timestamps"]["4th_phase_DESeq2"]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     ### Upload normalized counts to S3 ###
