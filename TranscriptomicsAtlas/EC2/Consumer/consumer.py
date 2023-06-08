@@ -9,7 +9,7 @@ import watchtower, logging
 from datetime import datetime
 from collections import defaultdict
 
-nested_dict = lambda: defaultdict(nested_dict)
+nested_dict = lambda: defaultdict(nested_dict)  # NOQA
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
 work_dir = "/home/ubuntu"
@@ -17,6 +17,7 @@ work_dir = "/home/ubuntu"
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
 nproc = subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout.strip()
+instance_id = requests.get(metadata_url + 'instance-id').text
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,14 +28,14 @@ ssm = boto3.client("ssm")
 sqs = boto3.resource("sqs")
 s3 = boto3.resource('s3')
 
-queue_name_paramter = ssm.get_parameter(Name="/neardata/queue_name", WithDecryption=True)
-queue_name = queue_name_paramter['Parameter']['Value']
+queue_name_parameter = ssm.get_parameter(Name="/neardata/queue_name", WithDecryption=True)
+queue_name = queue_name_parameter['Parameter']['Value']
 queue = sqs.get_queue_by_name(QueueName=queue_name)
 
-s3_bucket_paramter = ssm.get_parameter(Name="/neardata/s3_bucket_name", WithDecryption=True)
-s3_bucket_name = s3_bucket_paramter['Parameter']['Value']
-s3_bucket_metadata_paramter = ssm.get_parameter(Name="/neardata/s3_bucket_metadata_name", WithDecryption=True)
-s3_bucket_metadata_name = s3_bucket_paramter['Parameter']['Value']
+s3_bucket_parameter = ssm.get_parameter(Name="/neardata/s3_bucket_name", WithDecryption=True)
+s3_bucket_name = s3_bucket_parameter['Parameter']['Value']
+s3_bucket_metadata_parameter = ssm.get_parameter(Name="/neardata/s3_bucket_metadata_name", WithDecryption=True)
+s3_bucket_metadata_name = s3_bucket_metadata_parameter['Parameter']['Value']
 
 
 def clean_dir(path):
@@ -143,7 +144,6 @@ def consume_message(srr_id):
     srr_filesize = os.stat(f"/home/ubuntu/sratoolkit/local/sra/{srr_id}.sra").st_size
     fastq_filesize = os.stat(f"{fastq_dir}/{srr_id}_1.fastq").st_size + os.stat(f"{fastq_dir}/{srr_id}_2.fastq").st_size
 
-    instance_id = requests.get(metadata_url + 'instance-id').text
     metadata["instance_id"] = instance_id
     metadata["SRR_id"] = srr_id
     metadata["SRR_filesize_bytes"] = srr_filesize
@@ -157,7 +157,7 @@ def consume_message(srr_id):
 
     logger.info("S3 upload metadata starting")
     s3.meta.client.upload_file(f'{metadata_dir}/{srr_id}_metadata.json', s3_bucket_metadata_name,
-                               f"{srr_id}_metadata.json")
+                               f"{srr_id}/{srr_id}_metadata.json")
     logger.info("S3 upload metadata finished")
 
 
