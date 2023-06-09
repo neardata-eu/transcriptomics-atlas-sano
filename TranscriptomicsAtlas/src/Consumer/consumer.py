@@ -1,71 +1,19 @@
 import os
 import json
 import subprocess
-from functools import wraps
 from datetime import datetime
-from collections import defaultdict
 
 import boto3
-import botocore
-import requests
-import watchtower, logging
 
-nested_dict = lambda: defaultdict(nested_dict)  # NOQA
+from logger import logger, log_output
+from utils import clean_dir, nested_dict
+from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_file_exists
+
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
 work_dir = "/home/ubuntu"
 
-metadata_url = 'http://169.254.169.254/latest/meta-data/'
-os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
 nproc = subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout.strip()
-instance_id = requests.get(metadata_url + 'instance-id').text
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-logger.addHandler(watchtower.CloudWatchLogHandler(send_interval=1))
-
-ssm = boto3.client("ssm")
-sqs = boto3.resource("sqs")
-s3 = boto3.resource('s3')
-
-queue_name_parameter = ssm.get_parameter(Name="/neardata/queue_name", WithDecryption=True)
-queue_name = queue_name_parameter['Parameter']['Value']
-queue = sqs.get_queue_by_name(QueueName=queue_name)
-
-s3_bucket_parameter = ssm.get_parameter(Name="/neardata/s3_bucket_name", WithDecryption=True)
-s3_bucket_name = s3_bucket_parameter['Parameter']['Value']
-s3_bucket_metadata_parameter = ssm.get_parameter(Name="/neardata/s3_bucket_metadata_name", WithDecryption=True)
-s3_bucket_metadata_name = s3_bucket_metadata_parameter['Parameter']['Value']
-
-
-def clean_dir(path):
-    for root, dirs, files in os.walk(path, topdown=False):
-        for file_name in files:
-            file_path = os.path.join(root, file_name)
-            os.remove(file_path)
-        for dir_name in dirs:
-            dir_path = os.path.join(root, dir_name)
-            os.rmdir(dir_path)
-    logger.info(f"Removed files in {path}")
-
-
-def log_output(func):
-    @wraps(func)
-    def with_logging(*args, **kwargs):
-        logger.info(f"{func.__name__} started")
-
-        result = func(*args, **kwargs)
-
-        logger.info(result.stdout)
-        logger.warning(result.stderr)
-        if result.returncode != 0:
-            logger.error(f"{func.__name__} failed, exiting")
-            exit(1)
-        logger.info(f"{func.__name__} finished")
-
-        return result
-
-    return with_logging
 
 
 @log_output
@@ -115,6 +63,10 @@ class SalmonPipeline:
     metadata_dir: str = "/home/ubuntu/metadata"
     metadata = nested_dict()
 
+    s3 = boto3.resource('s3')
+    s3_bucket_name = get_ssm_parameter(param_name="/neardata/s3_bucket_name")
+    s3_metadata_bucket_name = get_ssm_parameter(param_name="/neardata/s3_bucket_metadata_name")
+
     def __init__(self, srr_id):
         self.srr_id = srr_id
         self.fastq_dir = f"/home/ubuntu/fastq/{self.srr_id}"
@@ -122,7 +74,8 @@ class SalmonPipeline:
         os.makedirs(self.fastq_dir, exist_ok=True)
 
     def start(self):
-        self.check_if_results_exist_in_s3()
+        if self.check_if_results_exist_in_s3():
+            return
 
         self.make_timestamps(
             prefetch, self.srr_id
@@ -146,18 +99,14 @@ class SalmonPipeline:
         self.clean()
 
     def check_if_results_exist_in_s3(self):
-        # TODO replace try-except with listing files?  \
-        #   https://stackoverflow.com/questions/33842944/check-if-a-key-exists-in-a-bucket-in-s3-using-boto3
-        try:
-            logger.info("Checking if the pipeline has already been run")
-            s3.Object(s3_bucket_name, f'normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt').load()
-            logger.info("Results exist in S3 bucket, exiting")
-            # return
-        except botocore.exceptions.ClientError as e:
-            if e.response['Error']['Code'] != "404":
-                logger.warning(e)
-                return
+        logger.info("Checking if the pipeline has already been run")
+        path_to_file = f'normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt'
+        if not check_file_exists(self.s3_bucket_name, path_to_file):
             logger.info("File not found, starting the pipeline")
+            return False
+        else:
+            logger.info("Results exist in S3 bucket, exiting")
+            return True
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
         self.metadata["timestamps"][pipeline_func.__name__]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
@@ -166,17 +115,17 @@ class SalmonPipeline:
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
-        s3.meta.client.upload_file(f'/home/ubuntu/R_output/{self.srr_id}_normalized_counts.txt', s3_bucket_name,
+        self.s3.meta.client.upload_file(f'/home/ubuntu/R_output/{self.srr_id}_normalized_counts.txt', self.s3_bucket_name,
                                    f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
         logger.info("Measuring file sizes")
         srr_filesize = os.stat(f"/home/ubuntu/sratoolkit/local/sra/{self.srr_id}.sra").st_size
-        fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + os.stat(
-            f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
+        fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + \
+                         os.stat(f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
 
-        self.metadata["instance_id"] = instance_id
+        self.metadata["instance_id"] = get_instance_id()
         self.metadata["SRR_id"] = self.srr_id
         self.metadata["SRR_filesize_bytes"] = srr_filesize
         self.metadata["fastq_filesize_bytes"] = fastq_filesize
@@ -187,8 +136,9 @@ class SalmonPipeline:
 
     def upload_metadata(self):
         logger.info("S3 upload metadata starting")
-        s3.meta.client.upload_file(f'{self.metadata_dir}/{self.srr_id}_metadata.json', s3_bucket_metadata_name,
-                                   f"{self.srr_id}/{self.srr_id}_metadata.json")
+        self.s3.meta.client.upload_file(f'{self.metadata_dir}/{self.srr_id}_metadata.json',
+                                        self.s3_metadata_bucket_name,
+                                        f"{self.srr_id}/{self.srr_id}_metadata.json")
         logger.info("S3 upload metadata finished")
 
     def clean(self):
@@ -201,6 +151,7 @@ class SalmonPipeline:
 
 
 if __name__ == "__main__":
+    queue = get_sqs_queue()
     logger.info("Awaiting messages")
     while True:
         messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
