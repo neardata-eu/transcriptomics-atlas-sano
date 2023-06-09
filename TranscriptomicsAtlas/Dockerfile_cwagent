@@ -1,13 +1,13 @@
 FROM ubuntu:22.04
 
 RUN apt-get update &&  \
-    apt-get install -y ca-certificates curl && \
-    apt-get install systemctl -y
-    # rm -rf /var/lib/apt/lists/*
+    apt-get install -y ca-certificates wget && \
+    apt-get install systemctl -y && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN curl -O https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
-    dpkg -i -E amazon-cloudwatch-agent.deb
-
+RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
+    dpkg -i -E amazon-cloudwatch-agent.deb && \
+    rm amazon-cloudwatch-agent.deb
 
 COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
 COPY credentials /root/.aws/credentials
