@@ -2,7 +2,6 @@ FROM ubuntu:22.04
 
 RUN apt-get update &&  \
     apt-get install -y ca-certificates wget && \
-    apt-get install systemctl -y && \
     rm -rf /var/lib/apt/lists/*
 
 RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
