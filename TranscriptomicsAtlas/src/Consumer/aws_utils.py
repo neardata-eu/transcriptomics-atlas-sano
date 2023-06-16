@@ -3,8 +3,9 @@ import boto3
 import botocore
 import requests
 
-metadata_url = 'http://169.254.169.254/latest/meta-data/'
-os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
+if "RUN_IN_CONTAINER" not in os.environ:
+    metadata_url = 'http://169.254.169.254/latest/meta-data/'
+    os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
 
 from logger import logger  # NOQA
 
@@ -25,7 +26,11 @@ def check_file_exists(s3_bucket_name, path_to_file):
 
 
 def get_instance_id():
-    instance_id = requests.get(metadata_url + 'instance-id').text
+    if "RUN_IN_CONTAINER" not in os.environ:
+        instance_id = requests.get(metadata_url + 'instance-id').text
+    else:
+        instance_id = os.environ["HOSTNAME"]
+
     return instance_id
 
 

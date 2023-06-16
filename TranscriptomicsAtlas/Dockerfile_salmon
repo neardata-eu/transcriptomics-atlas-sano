@@ -30,7 +30,7 @@ RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
 ### CWAGENT
 COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
 COPY credentials /root/.aws/credentials
-ENV AWS_REGION="us-east-1"
+ENV AWS_DEFAULT_REGION="us-east-1"
 ENV RUN_IN_CONTAINER="True"
 RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
     dpkg -i -E amazon-cloudwatch-agent.deb && \
@@ -45,5 +45,6 @@ COPY data/DESeq2/tx2gene.gencode.v42.csv /home/ubuntu/DESeq2/tx2gene.gencode.v42
 # COPY scripts
 COPY src/scripts/count_normalization.R /home/ubuntu/DESeq2/count_normalization.R
 COPY src/Consumer /home/ubuntu/Consumer
+COPY container_start.py /home/ubuntu/container_start.py
 
-ENTRYPOINT ["/opt/aws/amazon-cloudwatch-agent/bin/start-amazon-cloudwatch-agent"]
+ENTRYPOINT ["python3", "/home/ubuntu/container_start.py"]
