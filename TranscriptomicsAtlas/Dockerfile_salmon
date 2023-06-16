@@ -2,9 +2,9 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /home/ubuntu
 
-### PYTHON MODULES
+### PYTHON MODULES and utils
 RUN apt-get update && \
-    apt-get install wget python3-pip -y --no-install-recommends && \
+    apt-get install wget ca-certificates python3-pip -y --no-install-recommends && \
     pip3 install boto3 watchtower requests --no-cache-dir
 
 ### SRA-TOOLKIT
@@ -24,9 +24,17 @@ RUN apt-get install r-base-dev -y --no-install-recommends
 ### R packages
 # 'DESeq2', 'RCurl', 'RcppArmadillo' (libraries required by DESeq2) require
 RUN apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev libopenblas-dev libopenblas-dev -y
-
 RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'
 RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
+
+### CWAGENT
+COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
+COPY credentials /root/.aws/credentials
+ENV AWS_REGION="us-east-1"
+ENV RUN_IN_CONTAINER="True"
+RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
+    dpkg -i -E amazon-cloudwatch-agent.deb && \
+    rm amazon-cloudwatch-agent.deb
 
 # Config for sratoolkit untill I find a way to configure it using cli/bash
 COPY data/.ncbi /root/.ncbi
@@ -38,4 +46,4 @@ COPY data/DESeq2/tx2gene.gencode.v42.csv /home/ubuntu/DESeq2/tx2gene.gencode.v42
 COPY src/scripts/count_normalization.R /home/ubuntu/DESeq2/count_normalization.R
 COPY src/Consumer /home/ubuntu/Consumer
 
-ENTRYPOINT bash
+ENTRYPOINT ["/opt/aws/amazon-cloudwatch-agent/bin/start-amazon-cloudwatch-agent"]
