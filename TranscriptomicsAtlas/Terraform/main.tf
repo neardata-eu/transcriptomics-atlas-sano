@@ -95,7 +95,7 @@ resource "aws_security_group" "NearData_sg" {
 
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-0bbfdbe3656d3a4bb"
+  image_id      = "ami-06e08171cd790850c"
   instance_type = "m6a.large"
   key_name      = "vockey"
   user_data     = base64encode(file("init.sh"))
@@ -122,7 +122,7 @@ resource "aws_launch_template" "NearData_lt" {
     resource_type = "instance"
 
     tags = {
-      Name    = "NearData_v12-lt"
+      Name    = "NearData_v14-lt"
       Project = "NearData"
     }
   }
