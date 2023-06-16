@@ -3,10 +3,10 @@ import boto3
 import botocore
 import requests
 
-from logger import logger
-
 metadata_url = 'http://169.254.169.254/latest/meta-data/'
 os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
+
+from logger import logger  # NOQA
 
 ssm = boto3.client("ssm")
 sqs = boto3.resource("sqs")

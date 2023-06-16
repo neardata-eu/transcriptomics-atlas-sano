@@ -5,9 +5,9 @@ from datetime import datetime
 
 import boto3
 
+from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_file_exists
 from logger import logger, log_output
 from utils import clean_dir, nested_dict
-from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_file_exists
 
 my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
