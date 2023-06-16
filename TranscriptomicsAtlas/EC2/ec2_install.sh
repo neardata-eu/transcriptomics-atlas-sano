@@ -28,10 +28,8 @@ sudo add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu $(lsb_
 sudo apt-get install --no-install-recommends r-base-dev -y
 
 ### R packages
-# 'DESeq2' and 'RCurl' (library required by DESeq2) requires
-sudo apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev -y
-# 'RcppArmadillo' (library required by DESeq2) requires
-sudo apt-get install libopenblas-dev -y
+# 'DESeq2', 'RCurl', 'RcppArmadillo' (libraries required by DESeq2) require
+sudo apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev libopenblas-dev  -y
 
 sudo chmod o+w /usr/local/lib/R/site-library/
 Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'

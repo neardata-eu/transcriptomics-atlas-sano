@@ -2,31 +2,28 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /home/ubuntu
 
-RUN apt-get update
-RUN apt-get install wget -y
+### PYTHON MODULES
+RUN apt-get update && \
+    apt-get install wget python3-pip -y --no-install-recommends && \
+    pip3 install boto3 watchtower requests --no-cache-dir
 
 ### SRA-TOOLKIT
 RUN mkdir -p sratoolkit/local && \
-    wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - | tar -zx -C /home/ubuntu/sratoolkit/  && \
+    wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - \
+        | tar -zx -C /home/ubuntu/sratoolkit/  && \
     echo 'export PATH="$PATH":/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
 
 ### SALMON
-RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -qO - | tar -zx -C /home/ubuntu/ && \
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -qO -  \
+        | tar -zx -C /home/ubuntu/ && \
     echo 'export PATH="$PATH":/home/ubuntu/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
-
-### PYTHON MODULES
-RUN apt-get update
-RUN apt-get install python3-pip -y
-RUN pip3 install boto3 watchtower requests --no-cache-dir
 
 ### R
 RUN apt-get install r-base-dev -y --no-install-recommends
 
 ### R packages
-# 'DESeq2' and 'RCurl' (library required by DESeq2) requires
-RUN apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev -y
-# 'RcppArmadillo' (library required by DESeq2) requires
-RUN apt-get install libopenblas-dev -y
+# 'DESeq2', 'RCurl', 'RcppArmadillo' (libraries required by DESeq2) require
+RUN apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev libopenblas-dev libopenblas-dev -y
 
 RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'
 RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
