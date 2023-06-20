@@ -64,8 +64,13 @@ class SalmonPipeline:
     metadata = nested_dict()
 
     s3 = boto3.resource('s3')
-    s3_bucket_name = get_ssm_parameter(param_name="/neardata/s3_bucket_name")
-    s3_metadata_bucket_name = get_ssm_parameter(param_name="/neardata/s3_bucket_metadata_name")
+    s3_bucket_name_param = "/neardata/s3_bucket_name"
+    s3_metadata_bucket_name_param = "/neardata/s3_bucket_metadata_name"
+    if "RUN_IN_CONTAINER" in os.environ:
+        s3_bucket_name_param += "/container"
+        s3_metadata_bucket_name_param += "/container"
+    s3_bucket_name = get_ssm_parameter(param_name=s3_bucket_name_param)
+    s3_metadata_bucket_name = get_ssm_parameter(param_name=s3_metadata_bucket_name_param)
 
     def __init__(self, srr_id):
         self.srr_id = srr_id
@@ -116,7 +121,7 @@ class SalmonPipeline:
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
         self.s3.meta.client.upload_file(f'/home/ubuntu/R_output/{self.srr_id}_normalized_counts.txt', self.s3_bucket_name,
-                                   f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
+                                        f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
@@ -153,7 +158,7 @@ class SalmonPipeline:
 if __name__ == "__main__":
     queue = get_sqs_queue()
     logger.info("Awaiting messages")
-    while True:
+    while True:  # stop after single exec
         messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
         for message in messages:
             logger.info(f"Received msg={message.body}")

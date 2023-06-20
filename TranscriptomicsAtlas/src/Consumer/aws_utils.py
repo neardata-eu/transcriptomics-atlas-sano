@@ -41,6 +41,9 @@ def get_ssm_parameter(param_name):
 
 
 def get_sqs_queue():
-    queue_name = get_ssm_parameter("/neardata/queue_name")
+    if "RUN_IN_CONTAINER" not in os.environ:
+        queue_name = get_ssm_parameter("/neardata/queue_name")
+    else:
+        queue_name = get_ssm_parameter("/neardata/queue_name_container")
     queue = sqs.get_queue_by_name(QueueName=queue_name)
     return queue

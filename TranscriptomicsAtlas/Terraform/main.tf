@@ -6,6 +6,14 @@ data "aws_s3_bucket" "NearData_metadata_bucket_name" {
   bucket = "neardata-bucket-1234-metadata"
 }
 
+data "aws_s3_bucket" "NearData_container_results_bucket_name" {
+  bucket = "neardata-bucket-1234-container"
+}
+
+data "aws_s3_bucket" "NearData_container_metadata_bucket_name" {
+  bucket = "neardata-bucket-1234-metadata-container"
+}
+
 data "aws_iam_instance_profile" "labRole_profile" {
   name = "LabInstanceProfile"
 }
@@ -39,10 +47,49 @@ resource "aws_sqs_queue" "NearData_deadletter_queue" {
   }
 }
 
+resource "aws_sqs_queue" "NearData_queue_container" {
+  name                       = "NearData_queue_container"
+  max_message_size           = 2048
+  message_retention_seconds  = 10800
+  receive_wait_time_seconds  = 5
+  visibility_timeout_seconds = 10800
+
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.NearData_deadletter_queue.arn
+    maxReceiveCount     = 1
+  })
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_sqs_queue" "NearData_deadletter_queue_container" {
+  name                       = "NearData_deadletter_queue_container"
+  max_message_size           = 2048
+  message_retention_seconds  = 604800
+  receive_wait_time_seconds  = 5
+  visibility_timeout_seconds = 10800
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
 resource "aws_ssm_parameter" "queue_name" {
   name  = "/neardata/queue_name"
   type  = "String"
   value = aws_sqs_queue.NearData_queue.name
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_ssm_parameter" "queue_name_container" {
+  name  = "/neardata/queue_name_container"
+  type  = "String"
+  value = aws_sqs_queue.NearData_queue_container.name
 
   tags = {
     Project = "NearData"
@@ -63,6 +110,26 @@ resource "aws_ssm_parameter" "s3_bucket_metadata" {
   name  = "/neardata/s3_bucket_metadata_name"
   type  = "String"
   value = data.aws_s3_bucket.NearData_metadata_bucket_name.bucket
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_ssm_parameter" "s3_bucket_container" {
+  name  = "/neardata/s3_bucket_name/container"
+  type  = "String"
+  value = data.aws_s3_bucket.NearData_container_results_bucket_name.bucket
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_ssm_parameter" "s3_bucket_metadata_container" {
+  name  = "/neardata/s3_bucket_metadata_name/container"
+  type  = "String"
+  value = data.aws_s3_bucket.NearData_container_metadata_bucket_name.bucket
 
   tags = {
     Project = "NearData"
@@ -128,16 +195,16 @@ resource "aws_launch_template" "NearData_lt" {
   }
 }
 
-resource "aws_autoscaling_group" "NearData_asg" {
-  name                      = "NearData_asg"
-  min_size                  = 1
-  desired_capacity          = 4
-  max_size                  = 5
-  vpc_zone_identifier       = values(aws_subnet.NearData_Subnets)[*].id
-  wait_for_capacity_timeout = 0
-
-  launch_template {
-    id      = aws_launch_template.NearData_lt.id
-    version = "$Latest"
-  }
-}
+#resource "aws_autoscaling_group" "NearData_asg" {
+#  name                      = "NearData_asg"
+#  min_size                  = 1
+#  desired_capacity          = 4
+#  max_size                  = 5
+#  vpc_zone_identifier       = values(aws_subnet.NearData_Subnets)[*].id
+#  wait_for_capacity_timeout = 0
+#
+#  launch_template {
+#    id      = aws_launch_template.NearData_lt.id
+#    version = "$Latest"
+#  }
+#}
