@@ -9,11 +9,11 @@ from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_f
 from logger import logger, log_output
 from utils import clean_dir, nested_dict
 
-my_env = {**os.environ, 'PATH': '/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
-                                '/home/ubuntu/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
-work_dir = "/home/ubuntu"
+my_env = {**os.environ, 'PATH': '/opt/TranscriptomicsAtlas/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
+                                '/opt/TranscriptomicsAtlas/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
+work_dir = "/home/ubuntu/TAtlas"
 
-nproc = subprocess.run(["nproc", "--all"], capture_output=True, text=True).stdout.strip()
+nproc = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
 
 
 @log_output
@@ -36,8 +36,8 @@ def fasterq_dump(srr_id, fastq_dir):
 
 @log_output
 def salmon(srr_id, fastq_dir):
-    index_path = "/home/ubuntu/index/human_transcriptome_index"
-    quant_dir = f"/home/ubuntu/salmon/{srr_id}"
+    index_path = "/opt/TranscriptomicsAtlas/index/human_transcriptome_index"
+    quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
 
     salmon_result = subprocess.run(
@@ -51,7 +51,7 @@ def salmon(srr_id, fastq_dir):
 @log_output
 def deseq2(srr_id):
     deseq2_result = subprocess.run(
-        ["Rscript", "/home/ubuntu/DESeq2/count_normalization.R", srr_id],
+        ["Rscript", "/opt/TranscriptomicsAtlas/DESeq2/count_normalization.R", srr_id],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     return deseq2_result
@@ -60,7 +60,7 @@ def deseq2(srr_id):
 class SalmonPipeline:
     srr_id: str
     fastq_dir: str
-    metadata_dir: str = "/home/ubuntu/metadata"
+    metadata_dir: str = "/home/ubuntu/TAtlas/metadata"
     metadata = nested_dict()
 
     s3 = boto3.resource('s3')
@@ -74,7 +74,7 @@ class SalmonPipeline:
 
     def __init__(self, srr_id):
         self.srr_id = srr_id
-        self.fastq_dir = f"/home/ubuntu/fastq/{self.srr_id}"
+        self.fastq_dir = f"/home/ubuntu/TAtlas/fastq/{self.srr_id}"
         os.makedirs(self.metadata_dir, exist_ok=True)
         os.makedirs(self.fastq_dir, exist_ok=True)
 
@@ -120,13 +120,13 @@ class SalmonPipeline:
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
-        self.s3.meta.client.upload_file(f'/home/ubuntu/R_output/{self.srr_id}_normalized_counts.txt', self.s3_bucket_name,
+        self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt', self.s3_bucket_name,
                                         f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
         logger.info("Measuring file sizes")
-        srr_filesize = os.stat(f"/home/ubuntu/sratoolkit/local/sra/{self.srr_id}.sra").st_size
+        srr_filesize = os.stat(f"/home/ubuntu/TAtlas/prefetch/sra/{self.srr_id}.sra").st_size
         fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + \
                          os.stat(f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
 
@@ -134,6 +134,7 @@ class SalmonPipeline:
         self.metadata["SRR_id"] = self.srr_id
         self.metadata["SRR_filesize_bytes"] = srr_filesize
         self.metadata["fastq_filesize_bytes"] = fastq_filesize
+        self.metadata["execution_mode"] = "EC2" if "RUN_IN_CONTAINER" not in os.environ else "Container"
 
         logger.info("Saving metadata")
         with open(f'{self.metadata_dir}/{self.srr_id}_metadata.json', "w+") as f:
@@ -148,10 +149,10 @@ class SalmonPipeline:
 
     def clean(self):
         logger.info("Starting removing generated files")
-        clean_dir("/home/ubuntu/sratoolkit/local/sra")
-        clean_dir("/home/ubuntu/fastq")
-        clean_dir("/home/ubuntu/salmon")
-        clean_dir("/home/ubuntu/R_output")
+        clean_dir("/home/ubuntu/TAtlas/prefetch")
+        clean_dir("/home/ubuntu/TAtlas/fastq")
+        clean_dir("/home/ubuntu/TAtlas/salmon")
+        clean_dir("/home/ubuntu/TAtlas/R_output")
         logger.info("Finished removing generated files")
 
 

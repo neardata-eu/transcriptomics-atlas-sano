@@ -1,6 +1,7 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
-WORKDIR /home/ubuntu
+ENV RUN_IN_CONTAINER="True"
+WORKDIR /opt/TranscriptomicsAtlas
 
 ### PYTHON MODULES and utils
 RUN apt-get update && \
@@ -10,13 +11,13 @@ RUN apt-get update && \
 ### SRA-TOOLKIT
 RUN mkdir -p sratoolkit/local && \
     wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - \
-        | tar -zx -C /home/ubuntu/sratoolkit/  && \
-    echo 'export PATH="$PATH":/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
+        | tar -zx -C /opt/TranscriptomicsAtlas/sratoolkit/  && \
+    echo 'export PATH="$PATH":/opt/TranscriptomicsAtlas/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
 
 ### SALMON
 RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -qO -  \
-        | tar -zx -C /home/ubuntu/ && \
-    echo 'export PATH="$PATH":/home/ubuntu/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
+        | tar -zx -C /opt/TranscriptomicsAtlas/ && \
+    echo 'export PATH="$PATH":/opt/TranscriptomicsAtlas/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
 
 ### R
 RUN apt-get install r-base-dev -y --no-install-recommends
@@ -28,23 +29,24 @@ RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))
 RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
 
 ### CWAGENT
-COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
-COPY credentials /root/.aws/credentials
-ENV AWS_DEFAULT_REGION="us-east-1"
-ENV RUN_IN_CONTAINER="True"
 RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
     dpkg -i -E amazon-cloudwatch-agent.deb && \
     rm amazon-cloudwatch-agent.deb
+COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
+ENV AWS_DEFAULT_REGION="us-east-1"
+ENV AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials
 
-# Config for sratoolkit untill I find a way to configure it using cli/bash
+# Config for sratoolkit untill I find a way to configure it using cli/bash # TODO verfiy if config works in apptainer
 COPY data/.ncbi /root/.ncbi
 # Copy SALMON index
-COPY data/salmon_index /home/ubuntu/index/human_transcriptome_index
+COPY data/salmon_index /opt/TranscriptomicsAtlas/index/human_transcriptome_index
 # Copy tx2gene
-COPY data/DESeq2/tx2gene.gencode.v42.csv /home/ubuntu/DESeq2/tx2gene.gencode.v42.csv
+COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TranscriptomicsAtlas/DESeq2/tx2gene.gencode.v42.csv
 # COPY scripts
-COPY src/scripts/count_normalization.R /home/ubuntu/DESeq2/count_normalization.R
-COPY src/Consumer /home/ubuntu/Consumer
-COPY container_start.py /home/ubuntu/container_start.py
+COPY src/scripts/count_normalization.R /opt/TranscriptomicsAtlas/DESeq2/count_normalization.R
+COPY src/Consumer /opt/TranscriptomicsAtlas/Consumer
+COPY container_start.py /opt/TranscriptomicsAtlas/container_start.py
 
-ENTRYPOINT ["python3", "/home/ubuntu/container_start.py"]
+#COPY credentials /root/.aws/credentials
+
+ENTRYPOINT ["python3", "/opt/TranscriptomicsAtlas/container_start.py"]
