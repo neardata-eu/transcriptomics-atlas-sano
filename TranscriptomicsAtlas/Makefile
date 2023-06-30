@@ -1,7 +1,7 @@
 all: build push
 
 build:
-	docker build -t piotrkica/salmonpipeline:v2 -f Dockerfile_salmon .
+	docker build -t piotrkica/salmonpipeline:proc -f Dockerfile_salmon .
 
 push:
-	docker push piotrkica/salmonpipeline:v2
+	docker push piotrkica/salmonpipeline:proc

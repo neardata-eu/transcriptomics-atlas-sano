@@ -1,12 +1,103 @@
 {
     "agent": {
         "metrics_collection_interval": 10,
-        "run_as_user": "root"
+        "run_as_user": "cwagent"
     },
     "metrics": {
-        "namespace": "Containers/Development",
+        "namespace": "Containers/Development/Process",
         "force_flush_interval" : 10,
         "metrics_collected": {
+            "procstat": [
+                {
+                    "exe": "prefetch.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ],
+                    "append_dimensions": {
+                        "ContainerId": "$HOSTNAME"
+                    }
+                },
+                {
+                    "exe": "fasterq-dump.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ],
+                    "append_dimensions": {
+                        "ContainerId": "$HOSTNAME"
+                    }
+                },
+                {
+                    "exe": "salmon.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ],
+                    "append_dimensions": {
+                        "ContainerId": "$HOSTNAME"
+                    }
+                },
+                {
+                    "exe": "R.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ],
+                    "append_dimensions": {
+                        "ContainerId": "$HOSTNAME"
+                    }
+                }
+
+            ],
             "cpu": {
                 "measurement": [
                     "cpu_usage_idle",
@@ -25,7 +116,8 @@
             },
             "disk": {
                 "measurement": [
-                    "used_percent"
+                    "used_percent",
+					"inodes_free"
                 ],
                 "metrics_collection_interval": 10,
                 "resources": [
@@ -54,7 +146,9 @@
             },
             "mem": {
                 "measurement": [
-                    "mem_used_percent"
+                    "mem_used",
+                    "mem_used_percent",
+                    "mem_total"
                 ],
                 "metrics_collection_interval": 10,
                 "append_dimensions": {
