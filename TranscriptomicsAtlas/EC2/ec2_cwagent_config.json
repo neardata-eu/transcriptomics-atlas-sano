@@ -4,6 +4,7 @@
 		"run_as_user": "root"
 	},
 	"metrics": {
+		"namespace": "EC2Instances/Development",
 		"aggregation_dimensions": [
 			[
 				"InstanceId"
@@ -16,6 +17,85 @@
 			"InstanceType": "${aws:InstanceType}"
 		},
 		"metrics_collected": {
+			"procstat": [
+                {
+                    "exe": "prefetch.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ]
+                },
+                {
+                    "exe": "fasterq-dump.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ]
+                },
+                {
+                    "exe": "salmon.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ]
+                },
+                {
+                    "exe": "R.*",
+                    "measurement": [
+                        "cpu_time",
+                        "cpu_time_idle",
+                        "cpu_time_iowait",
+                        "cpu_time_system",
+                        "cpu_time_user",
+                        "cpu_usage",
+                        "memory_rss",
+                        "memory_vms",
+                        "memory_swap",
+                        "num_threads",
+                        "read_bytes",
+                        "write_bytes",
+                        "read_count",
+                        "write_count"
+                    ]
+                }
+
+            ],
 			"cpu": {
 				"measurement": [
 					"cpu_usage_idle",
@@ -27,7 +107,7 @@
 				"resources": [
 					"*"
 				],
-				"totalcpu": false
+				"totalcpu": true
 			},
 			"disk": {
 				"measurement": [
@@ -41,7 +121,11 @@
 			},
 			"diskio": {
 				"measurement": [
-					"io_time"
+					"io_time",
+                    "write_bytes",
+                    "read_bytes",
+                    "writes",
+                    "reads"
 				],
 				"metrics_collection_interval": 10,
 				"resources": [
@@ -50,10 +134,27 @@
 			},
 			"mem": {
 				"measurement": [
-					"mem_used_percent"
+					"mem_used",
+                    "mem_used_percent",
+                    "mem_total"
 				],
 				"metrics_collection_interval": 10
 			},
+			"net": {
+                "measurement": [
+                    "bytes_sent",
+                    "bytes_recv",
+                    "packets_sent",
+                    "packets_recv"
+                ],
+                "metrics_collection_interval": 10,
+                "resources": [
+                    "*"
+                ],
+                "append_dimensions": {
+                    "ContainerId": "$HOSTNAME"
+                }
+            },
 			"statsd": {
 				"metrics_aggregation_interval": 0,
 				"metrics_collection_interval": 10,
