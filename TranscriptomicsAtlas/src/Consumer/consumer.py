@@ -40,11 +40,19 @@ def salmon(srr_id, fastq_dir):
     quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
 
-    salmon_result = subprocess.run(
-        ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-         "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
+    if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
+        salmon_result = subprocess.run(
+            ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
+             "-r", f"{fastq_dir}/{srr_id}.fastq", "-o", quant_dir],
+            capture_output=True, text=True, env=my_env, cwd=work_dir
+        )
+    else:
+        salmon_result = subprocess.run(
+            ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
+             "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
+            capture_output=True, text=True, env=my_env, cwd=work_dir
+        )
+
     return salmon_result
 
 
@@ -120,15 +128,19 @@ class SalmonPipeline:
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
-        self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt', self.s3_bucket_name,
+        self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
+                                        self.s3_bucket_name,
                                         f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
         logger.info("Measuring file sizes")
         srr_filesize = os.stat(f"/home/ubuntu/TAtlas/prefetch/sra/{self.srr_id}.sra").st_size
-        fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + \
-                         os.stat(f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
+        if os.path.exists(f"{self.fastq_dir}/{self.srr_id}.fastq"):
+            fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}.fastq").st_size
+        else:
+            fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + \
+                             os.stat(f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
 
         self.metadata["instance_id"] = get_instance_id()
         self.metadata["SRR_id"] = self.srr_id
