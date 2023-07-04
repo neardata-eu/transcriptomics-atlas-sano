@@ -1,9 +1,9 @@
 data "aws_s3_bucket" "NearData_results_bucket_name" {
-  bucket = "neardata-bucket-1234"
+  bucket = "neardata-bucket-results-ec2"
 }
 
 data "aws_s3_bucket" "NearData_metadata_bucket_name" {
-  bucket = "neardata-bucket-1234-metadata"
+  bucket = "neardata-bucket-results-ec2-metadata"
 }
 
 data "aws_s3_bucket" "NearData_container_results_bucket_name" {
@@ -136,6 +136,14 @@ resource "aws_ssm_parameter" "s3_bucket_metadata_container" {
   }
 }
 
+resource "aws_ssm_parameter" "ec2_cwagent_config" {
+  name        = "ec2_cwagent_config"
+  description = "Cloudwatch agent config for Transcriptomics Atlas EC2 instances"
+  type        = "String"
+  value       = file("${path.module}/../EC2/ec2_cwagent_config.json")
+  tier        = "Advanced"
+}
+
 resource "aws_security_group" "NearData_sg" {
   name   = "NearData_SG"
   vpc_id = aws_vpc.NearData_VPC.id
@@ -144,7 +152,7 @@ resource "aws_security_group" "NearData_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["195.150.12.215/32"]
+    cidr_blocks = ["195.150.12.215/32", "5.173.34.45/32"]
   }
 
   egress {
@@ -162,7 +170,7 @@ resource "aws_security_group" "NearData_sg" {
 
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-06e08171cd790850c"
+  image_id      = "ami-0464c6841e1f6d519"
   instance_type = "m6a.large"
   key_name      = "vockey"
   user_data     = base64encode(file("init.sh"))
@@ -189,7 +197,7 @@ resource "aws_launch_template" "NearData_lt" {
     resource_type = "instance"
 
     tags = {
-      Name    = "NearData_v14-lt"
+      Name    = "NearData_v16-lt"
       Project = "NearData"
     }
   }
