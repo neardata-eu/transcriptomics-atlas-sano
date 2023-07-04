@@ -6,17 +6,19 @@ sudo apt-get remove needrestart -y
 sudo apt-get update
 sudo apt-get install awscli -y
 
+sudo chown -R ubuntu /opt
+mkdir /opt/TAtlas
 ### SRA-TOOLKIT
-mkdir -p sratoolkit/local
-wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -O - | tar -zx -C /home/ubuntu/sratoolkit/
+mkdir -p /home/ubuntu/TAtlas/sratoolkit
+wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -O - | tar -zx -C /opt/TAtlas
 #TODO check how to apply config using cli
 #vdb-config -pre
 #vdb-config --report-cloud-indentity yes  # TODO is it needed?
-echo 'export PATH="$PATH":/home/ubuntu/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
+echo 'export PATH="$PATH":/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
 
 ### SALMON
-wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -O - | tar -zx -C /home/ubuntu/
-echo 'export PATH="$PATH":/home/ubuntu/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
+wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -O - | tar -zx -C /opt/TAtlas
+echo 'export PATH="$PATH":/opt/TAtlas/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
 
 ### PYTHON MODULES
 sudo apt-get install python3-pip -y
@@ -38,5 +40,8 @@ Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
 ### CWAGENT
 sudo wget https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb
 sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
-sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:cloudwatch_agent_config_neardata -s
+sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:ec2_cwagent_config -s
 sudo rm amazon-cloudwatch-agent.deb
+
+### Source Codes
+aws s3 sync s3://neardata-bucket-1234/source/ /opt/TAtlas

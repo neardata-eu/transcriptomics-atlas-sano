@@ -20,7 +20,7 @@ samples = filter(samples_all, condition==paste(stimulous)|condition==paste(contr
 files = file.path(dir, samples$run, "quant.sf")
 names(files) = samples$run
 
-tx2gene <- read_delim("/opt/TranscriptomicsAtlas/DESeq2/tx2gene.gencode.v42.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
+tx2gene <- read_delim("/opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv", delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 output_dir = "/home/ubuntu/TAtlas/R_output/"
 dir.create(output_dir)

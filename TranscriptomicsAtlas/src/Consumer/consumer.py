@@ -9,8 +9,8 @@ from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_f
 from logger import logger, log_output
 from utils import clean_dir, nested_dict
 
-my_env = {**os.environ, 'PATH': '/opt/TranscriptomicsAtlas/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin:'
-                                '/opt/TranscriptomicsAtlas/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
+my_env = {**os.environ, 'PATH': '/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin:'
+                                '/opt/TAtlas/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
 work_dir = "/home/ubuntu/TAtlas"
 
 nproc = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
@@ -36,7 +36,7 @@ def fasterq_dump(srr_id, fastq_dir):
 
 @log_output
 def salmon(srr_id, fastq_dir):
-    index_path = "/opt/TranscriptomicsAtlas/index/human_transcriptome_index"
+    index_path = "/opt/TAtlas/salmon_index/"
     quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
 
@@ -59,7 +59,7 @@ def salmon(srr_id, fastq_dir):
 @log_output
 def deseq2(srr_id):
     deseq2_result = subprocess.run(
-        ["Rscript", "/opt/TranscriptomicsAtlas/DESeq2/count_normalization.R", srr_id],
+        ["Rscript", "/opt/TAtlas/DESeq2/count_normalization.R", srr_id],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
     return deseq2_result
@@ -135,7 +135,7 @@ class SalmonPipeline:
 
     def gather_metadata(self):
         logger.info("Measuring file sizes")
-        srr_filesize = os.stat(f"/home/ubuntu/TAtlas/prefetch/sra/{self.srr_id}.sra").st_size
+        srr_filesize = os.stat(f"/home/ubuntu/TAtlas/sratoolkit/sra/{self.srr_id}.sra").st_size
         if os.path.exists(f"{self.fastq_dir}/{self.srr_id}.fastq"):
             fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}.fastq").st_size
         else:
@@ -161,7 +161,7 @@ class SalmonPipeline:
 
     def clean(self):
         logger.info("Starting removing generated files")
-        clean_dir("/home/ubuntu/TAtlas/prefetch")
+        clean_dir("/home/ubuntu/TAtlas/sratoolkit")
         clean_dir("/home/ubuntu/TAtlas/fastq")
         clean_dir("/home/ubuntu/TAtlas/salmon")
         clean_dir("/home/ubuntu/TAtlas/R_output")
