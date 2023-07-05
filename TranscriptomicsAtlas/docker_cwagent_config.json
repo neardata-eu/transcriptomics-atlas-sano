@@ -5,7 +5,7 @@
     },
     "metrics": {
         "namespace": "Containers/Development/Process",
-        "force_flush_interval" : 10,
+        "aggregation_dimensions": [["ContainerId"]],
         "metrics_collected": {
             "procstat": [
                 {
@@ -14,7 +14,6 @@
                         "cpu_time",
                         "cpu_time_idle",
                         "cpu_time_iowait",
-                        "cpu_time_system",
                         "cpu_time_user",
                         "cpu_usage",
                         "memory_rss",
@@ -36,7 +35,6 @@
                         "cpu_time",
                         "cpu_time_idle",
                         "cpu_time_iowait",
-                        "cpu_time_system",
                         "cpu_time_user",
                         "cpu_usage",
                         "memory_rss",
@@ -58,7 +56,6 @@
                         "cpu_time",
                         "cpu_time_idle",
                         "cpu_time_iowait",
-                        "cpu_time_system",
                         "cpu_time_user",
                         "cpu_usage",
                         "memory_rss",
@@ -80,7 +77,6 @@
                         "cpu_time",
                         "cpu_time_idle",
                         "cpu_time_iowait",
-                        "cpu_time_system",
                         "cpu_time_user",
                         "cpu_usage",
                         "memory_rss",
@@ -102,8 +98,7 @@
                 "measurement": [
                     "cpu_usage_idle",
                     "cpu_usage_iowait",
-                    "cpu_usage_user",
-                    "cpu_usage_system"
+                    "cpu_usage_user"
                 ],
                 "metrics_collection_interval": 10,
                 "resources": [
@@ -116,8 +111,7 @@
             },
             "disk": {
                 "measurement": [
-                    "used_percent",
-					"inodes_free"
+                    "used_percent"
                 ],
                 "metrics_collection_interval": 10,
                 "resources": [
@@ -147,8 +141,7 @@
             "mem": {
                 "measurement": [
                     "mem_used",
-                    "mem_used_percent",
-                    "mem_total"
+                    "mem_used_percent"
                 ],
                 "metrics_collection_interval": 10,
                 "append_dimensions": {
