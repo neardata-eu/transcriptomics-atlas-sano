@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV RUN_IN_CONTAINER="True"
-WORKDIR /opt/TranscriptomicsAtlas
+WORKDIR /opt/TAtlas
 
 ### PYTHON MODULES and utils
 RUN apt-get update && \
@@ -9,15 +9,14 @@ RUN apt-get update && \
     pip3 install boto3 watchtower requests --no-cache-dir
 
 ### SRA-TOOLKIT
-RUN mkdir -p sratoolkit/local && \
-    wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - \
-        | tar -zx -C /opt/TranscriptomicsAtlas/sratoolkit/  && \
-    echo 'export PATH="$PATH":/opt/TranscriptomicsAtlas/sratoolkit/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
+RUN wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - \
+        | tar -zx -C /opt/TAtlas/ && \
+    echo 'export PATH="$PATH":/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
 
 ### SALMON
 RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -qO -  \
-        | tar -zx -C /opt/TranscriptomicsAtlas/ && \
-    echo 'export PATH="$PATH":/opt/TranscriptomicsAtlas/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
+        | tar -zx -C /opt/TAtlas/ && \
+    echo 'export PATH="$PATH":/opt/TAtlas/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
 
 ### R
 RUN apt-get install r-base-dev -y --no-install-recommends
@@ -38,15 +37,14 @@ ENV AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials
 
 # Config for sratoolkit untill I find a way to configure it using cli/bash # TODO verfiy if config works in apptainer
 COPY data/.ncbi /root/.ncbi
-# Copy SALMON index
-COPY data/salmon_index /opt/TranscriptomicsAtlas/index/human_transcriptome_index
-# Copy tx2gene
-COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TranscriptomicsAtlas/DESeq2/tx2gene.gencode.v42.csv
+# Copy SALMON index and tx2gene
+COPY data/salmon_index /opt/TAtlas/salmon_index/
+COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv
 # COPY scripts
-COPY src/scripts/count_normalization.R /opt/TranscriptomicsAtlas/DESeq2/count_normalization.R
-COPY src/Consumer /opt/TranscriptomicsAtlas/Consumer
-COPY container_start.py /opt/TranscriptomicsAtlas/container_start.py
+COPY src/scripts/count_normalization.R /opt/TAtlas/DESeq2/count_normalization.R
+COPY src/Consumer /opt/TAtlas/Consumer
+COPY container_start.py /opt/TAtlas/container_start.py
 
 #COPY credentials /root/.aws/credentials
 
-ENTRYPOINT ["python3", "/opt/TranscriptomicsAtlas/container_start.py"]
+ENTRYPOINT ["python3", "/opt/TAtlas/container_start.py"]

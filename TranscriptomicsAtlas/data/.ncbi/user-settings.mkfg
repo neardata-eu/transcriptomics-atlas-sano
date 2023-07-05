@@ -10,4 +10,4 @@
 /repository/user/ad/public/apps/wgs/volumes/wgsAd = "."
 /repository/user/ad/public/root = "."
 /repository/user/default-path = "/home/ubuntu/ncbi"
-/repository/user/main/public/root = "/home/ubuntu/TAtlas/prefetch"
+/repository/user/main/public/root = "/home/ubuntu/TAtlas/sratoolkit"
