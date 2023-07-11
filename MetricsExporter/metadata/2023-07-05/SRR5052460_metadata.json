@@ -1,0 +1,25 @@
+{
+    "timestamps": {
+        "prefetch": {
+            "start_time": "2023-07-05T12:29:48",
+            "end_time": "2023-07-05T12:30:35"
+        },
+        "fasterq_dump": {
+            "start_time": "2023-07-05T12:30:35",
+            "end_time": "2023-07-05T12:33:44"
+        },
+        "salmon": {
+            "start_time": "2023-07-05T12:33:44",
+            "end_time": "2023-07-05T13:00:46"
+        },
+        "deseq2": {
+            "start_time": "2023-07-05T13:00:46",
+            "end_time": "2023-07-05T13:00:56"
+        }
+    },
+    "instance_id": "i-0ec771083b7f36473",
+    "SRR_id": "SRR5052460",
+    "SRR_filesize_bytes": 1773957454,
+    "fastq_filesize_bytes": 15804606926,
+    "execution_mode": "EC2"
+}
