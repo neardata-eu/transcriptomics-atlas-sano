@@ -1,3 +1,4 @@
+import os
 import logging
 import watchtower
 
@@ -5,7 +6,7 @@ from functools import wraps
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.addHandler(watchtower.CloudWatchLogHandler(send_interval=1))
+logger.addHandler(watchtower.CloudWatchLogHandler(send_interval=1, log_stream_name=os.getenv('HOSTNAME')+'/{program_name}/{logger_name}/{process_id}'))
 
 
 def log_output(func):
