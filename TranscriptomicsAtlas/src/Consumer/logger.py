@@ -19,8 +19,9 @@ def log_output(func):
         logger.info(result.stdout)
         logger.warning(result.stderr)
         if result.returncode != 0:
-            logger.error(f"{func.__name__} failed, exiting")
-            exit(1)
+            err_msg = f"{func.__name__} failed. Aborting the pipeline."  # TODO Improve
+            logger.error(err_msg)
+            raise ValueError(err_msg)
         logger.info(f"{func.__name__} finished")
 
         return result

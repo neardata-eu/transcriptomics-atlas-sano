@@ -6,7 +6,7 @@ WORKDIR /opt/TAtlas
 ### PYTHON MODULES and utils
 RUN apt-get update && \
     apt-get install wget ca-certificates python3-pip -y --no-install-recommends && \
-    pip3 install boto3 watchtower requests --no-cache-dir
+    pip3 install boto3 watchtower requests backoff --no-cache-dir
 
 ### SRA-TOOLKIT
 RUN wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - \
@@ -35,7 +35,7 @@ COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
 ENV AWS_DEFAULT_REGION="us-east-1"
 ENV AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials
 
-# Config for sratoolkit untill I find a way to configure it using cli/bash # TODO verfiy if config works in apptainer
+# Config for sratoolkit untill I find a way to configure it using cli/bash
 COPY data/.ncbi /root/.ncbi
 # Copy SALMON index and tx2gene
 COPY data/salmon_index /opt/TAtlas/salmon_index/
@@ -44,7 +44,5 @@ COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.
 COPY src/scripts/count_normalization.R /opt/TAtlas/DESeq2/count_normalization.R
 COPY src/Consumer /opt/TAtlas/Consumer
 COPY container_start.py /opt/TAtlas/container_start.py
-
-#COPY credentials /root/.aws/credentials
 
 ENTRYPOINT ["python3", "/opt/TAtlas/container_start.py"]

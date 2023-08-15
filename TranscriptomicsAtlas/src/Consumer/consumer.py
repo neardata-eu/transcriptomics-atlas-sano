@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 
 import boto3
+import backoff
 
 from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_file_exists
 from logger import logger, log_output
@@ -14,8 +15,10 @@ my_env = {**os.environ, 'PATH': '/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin:'
 work_dir = "/home/ubuntu/TAtlas"
 
 nproc = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
+logger.info(f"Nproc={nproc}")
 
 
+@backoff.on_exception(backoff.constant, ValueError, max_tries=4, logger=logger)
 @log_output
 def prefetch(srr_id):
     prefetch_result = subprocess.run(
@@ -25,6 +28,7 @@ def prefetch(srr_id):
     return prefetch_result
 
 
+@backoff.on_exception(backoff.constant, ValueError, max_tries=4, logger=logger)
 @log_output
 def fasterq_dump(srr_id, fastq_dir):
     fasterq_result = subprocess.run(
