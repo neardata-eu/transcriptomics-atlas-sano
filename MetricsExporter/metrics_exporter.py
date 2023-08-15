@@ -22,12 +22,12 @@ def get_all_metrics_for_instance(namespace, instance_id, start_time, end_time):
                     'MetricName': metric_name,
                     'Dimensions': [
                         {
-                            'Name': 'InstanceId',
+                            'Name': 'ContainerId',
                             'Value': instance_id
                         }
                     ]
                 },
-                'Period': 60,
+                'Period': 10,
                 'Stat': statistic
             }
         }
@@ -55,13 +55,16 @@ def get_all_metrics_for_instance(namespace, instance_id, start_time, end_time):
     return merged[sorted_columns].sort_values("Timestamp").reset_index(drop=True)
 
 
-namespace = "EC2Instances/Development"
-start_time = "2023-07-05T10:30:00"
-end_time = "2023-07-05T13:30:00"
-instance_ids = ["i-0f94d08d1318d61a5", "i-0bfdeba94d645b3fa", "i-07c2da38a3dd06322", "i-0ec771083b7f36473",
-                "i-0ca0647f2c49fccdb", "i-076094e027186f6bd", "i-0516c994fa6a5973a", "i-0a490a6b0d4dec87c"]
+namespace = "Containers/Development/Process"
+start_time = "2023-08-14T16:36:00"
+end_time = "2023-08-14T19:36:00"
+# instance_ids = ["i-0f94d08d1318d61a5", "i-0bfdeba94d645b3fa", "i-07c2da38a3dd06322", "i-0ec771083b7f36473",
+#                 "i-0ca0647f2c49fccdb", "i-076094e027186f6bd", "i-0516c994fa6a5973a", "i-0a490a6b0d4dec87c"]
+container_ids = ["4501679/1", "4501679/2", "4501679/3", "4501679/4",
+                 "4501679/5", "4501679/6", "4501679/7", "4501679/8"]
 
-os.makedirs("data/" + start_time.split("T")[0], exist_ok=True)
-for instance_id in tqdm(instance_ids):
+datadir = "data/" + start_time.split("T")[0] + "-hpc"
+os.makedirs(datadir, exist_ok=True)
+for instance_id in tqdm(container_ids):
     metric_df = get_all_metrics_for_instance(namespace, instance_id, start_time, end_time)
-    metric_df.to_csv(f"data/2023-07-05/{instance_id}.csv")
+    metric_df.to_csv(f"{datadir}/{instance_id.replace('/', '_')}.csv")
