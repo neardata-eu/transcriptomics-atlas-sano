@@ -63,7 +63,7 @@ end_time = "2023-08-14T19:36:00"
 container_ids = ["4501679/1", "4501679/2", "4501679/3", "4501679/4",
                  "4501679/5", "4501679/6", "4501679/7", "4501679/8"]
 
-datadir = "data/" + start_time.split("T")[0] + "-hpc"
+datadir = "metric_data/" + start_time.split("T")[0] + "-hpc"
 os.makedirs(datadir, exist_ok=True)
 for instance_id in tqdm(container_ids):
     metric_df = get_all_metrics_for_instance(namespace, instance_id, start_time, end_time)
