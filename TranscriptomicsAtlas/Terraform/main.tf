@@ -7,11 +7,11 @@ data "aws_s3_bucket" "NearData_metadata_bucket_name" {
 }
 
 data "aws_s3_bucket" "NearData_container_results_bucket_name" {
-  bucket = "neardata-bucket-1234-container"
+  bucket = "neardata-bucket-results-hpc"
 }
 
 data "aws_s3_bucket" "NearData_container_metadata_bucket_name" {
-  bucket = "neardata-bucket-1234-metadata-container"
+  bucket = "neardata-bucket-results-hpc-metadata"
 }
 
 data "aws_iam_instance_profile" "labRole_profile" {
@@ -21,9 +21,9 @@ data "aws_iam_instance_profile" "labRole_profile" {
 resource "aws_sqs_queue" "NearData_queue" {
   name                       = "NearData_queue"
   max_message_size           = 2048
-  message_retention_seconds  = 10800
+  message_retention_seconds  = 36000
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 10800
+  visibility_timeout_seconds = 18000
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.NearData_deadletter_queue.arn
@@ -50,12 +50,12 @@ resource "aws_sqs_queue" "NearData_deadletter_queue" {
 resource "aws_sqs_queue" "NearData_queue_container" {
   name                       = "NearData_queue_container"
   max_message_size           = 2048
-  message_retention_seconds  = 10800
+  message_retention_seconds  = 36000
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 10800
+  visibility_timeout_seconds = 18000
 
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.NearData_deadletter_queue.arn
+    deadLetterTargetArn = aws_sqs_queue.NearData_deadletter_queue_container.arn
     maxReceiveCount     = 1
   })
 
@@ -152,7 +152,7 @@ resource "aws_security_group" "NearData_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["195.150.12.215/32", "5.173.34.45/32"]
+    cidr_blocks = ["195.150.12.215/32", "5.173.49.232/32"]
   }
 
   egress {
@@ -170,7 +170,7 @@ resource "aws_security_group" "NearData_sg" {
 
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-0464c6841e1f6d519"
+  image_id      = "ami-0ebb995fac9a140ef"
   instance_type = "m6a.large"
   key_name      = "vockey"
   user_data     = base64encode(file("init.sh"))
@@ -197,7 +197,7 @@ resource "aws_launch_template" "NearData_lt" {
     resource_type = "instance"
 
     tags = {
-      Name    = "NearData_v16-lt"
+      Name    = "NearData_v2.1-lt"
       Project = "NearData"
     }
   }
@@ -206,8 +206,8 @@ resource "aws_launch_template" "NearData_lt" {
 #resource "aws_autoscaling_group" "NearData_asg" {
 #  name                      = "NearData_asg"
 #  min_size                  = 1
-#  desired_capacity          = 4
-#  max_size                  = 5
+#  desired_capacity          = 8
+#  max_size                  = 8
 #  vpc_zone_identifier       = values(aws_subnet.NearData_Subnets)[*].id
 #  wait_for_capacity_timeout = 0
 #
