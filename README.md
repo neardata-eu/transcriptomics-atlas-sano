@@ -1,6 +1,6 @@
 # Transcriptomics Atlas Pipeline: Cloud vs HPC - Reproducibility Guide:
 
-1. Create a single EC2 instance on AWS:
+1. Create a single EC2 instance on AWS (or use my AMI: `ami-0ebb995fac9a140ef` and skip to point 4):
     * Type: m6a.large, 100GB EBS (GP3 type, 250MiB/s throughput, 3000IOPS)
     * Copy and install `ec2_install.sh` from `./TranscriptomicsAtlas/EC2`
 2. Generate Salmon index:
