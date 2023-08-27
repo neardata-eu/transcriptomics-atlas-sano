@@ -134,7 +134,7 @@ class SalmonPipeline:
         logger.info("S3 upload starting")
         self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
                                         self.s3_bucket_name,
-                                        f"normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt")
+                                        f"{self.srr_id}_normalized_counts.txt")
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
@@ -160,7 +160,7 @@ class SalmonPipeline:
         logger.info("S3 upload metadata starting")
         self.s3.meta.client.upload_file(f'{self.metadata_dir}/{self.srr_id}_metadata.json',
                                         self.s3_metadata_bucket_name,
-                                        f"{self.srr_id}/{self.srr_id}_metadata.json")
+                                        f"{self.srr_id}_metadata.json")
         logger.info("S3 upload metadata finished")
 
     def clean(self):
