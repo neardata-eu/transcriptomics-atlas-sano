@@ -1,9 +1,13 @@
 import os
 from collections import defaultdict
 
-from logger import logger
-
 nested_dict = lambda: defaultdict(nested_dict)  # NOQA
+
+
+class PipelineError(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
 
 
 def clean_dir(path):
@@ -14,4 +18,3 @@ def clean_dir(path):
         for dir_name in dirs:
             dir_path = os.path.join(root, dir_name)
             os.rmdir(dir_path)
-    logger.info(f"Removed files in {path}")

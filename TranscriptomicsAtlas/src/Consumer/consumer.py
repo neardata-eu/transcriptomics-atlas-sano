@@ -8,7 +8,7 @@ import backoff
 
 from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_file_exists
 from logger import logger, log_output
-from utils import clean_dir, nested_dict
+from utils import clean_dir, nested_dict, PipelineError
 
 my_env = {**os.environ, 'PATH': '/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/opt/TAtlas/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
@@ -18,7 +18,7 @@ nproc = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
 logger.info(f"Nproc={nproc}")
 
 
-@backoff.on_exception(backoff.constant, ValueError, max_tries=4, logger=logger)
+@backoff.on_exception(backoff.constant, PipelineError, max_tries=4, logger=logger)
 @log_output
 def prefetch(srr_id):
     prefetch_result = subprocess.run(
@@ -28,7 +28,7 @@ def prefetch(srr_id):
     return prefetch_result
 
 
-@backoff.on_exception(backoff.constant, ValueError, max_tries=4, logger=logger)
+@backoff.on_exception(backoff.constant, PipelineError, max_tries=4, logger=logger)
 @log_output
 def fasterq_dump(srr_id, fastq_dir):
     fasterq_result = subprocess.run(
@@ -113,7 +113,6 @@ class SalmonPipeline:
         self.upload_normalized_counts_to_s3()
         self.gather_metadata()
         self.upload_metadata()
-        self.clean()
 
     def check_if_results_exist_in_s3(self):
         logger.info("Checking if the pipeline has already been run")
@@ -175,10 +174,16 @@ class SalmonPipeline:
 if __name__ == "__main__":
     queue = get_sqs_queue()
     logger.info("Awaiting messages")
-    while True:  # stop after single exec
+    while True:
         messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
         for message in messages:
             logger.info(f"Received msg={message.body}")
-            SalmonPipeline(message.body).start()
+            try:
+                pipeline = SalmonPipeline(message.body)
+                pipeline.start()
+            except PipelineError as e:
+                logger.warning(e)
+            finally:
+                pipeline.clean()
             message.delete()
             logger.info("Processed and deleted msg. Awaiting next one")

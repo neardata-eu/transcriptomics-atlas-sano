@@ -3,6 +3,7 @@ import logging
 import watchtower
 
 from functools import wraps
+from utils import PipelineError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,9 +20,7 @@ def log_output(func):
         logger.info(result.stdout)
         logger.warning(result.stderr)
         if result.returncode != 0:
-            err_msg = f"{func.__name__} failed. Aborting the pipeline."  # TODO Improve
-            logger.error(err_msg)
-            raise ValueError(err_msg)
+            raise PipelineError(f"{func.__name__} failed. Aborting the pipeline.")
         logger.info(f"{func.__name__} finished")
 
         return result
