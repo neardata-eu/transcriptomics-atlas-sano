@@ -57,6 +57,9 @@ def salmon(srr_id, fastq_dir):
             capture_output=True, text=True, env=my_env, cwd=work_dir
         )
 
+    if "Found no concordant and consistent mappings." in salmon_result.stderr:
+        raise PipelineError(f"Found no concordant and consistent mappings for {srr_id}. Aborting the pipeline.")
+
     return salmon_result
 
 
