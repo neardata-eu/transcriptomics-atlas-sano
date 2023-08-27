@@ -1,21 +1,21 @@
 data "aws_s3_bucket" "NearData_results_bucket_name" {
-  bucket = "neardata-bucket-results-ec2"
+  bucket = "neardata-salmon-ec2-results"
 }
 
 data "aws_s3_bucket" "NearData_metadata_bucket_name" {
-  bucket = "neardata-bucket-results-ec2-metadata"
+  bucket = "neardata-salmon-ec2-metadata"
 }
 
 data "aws_s3_bucket" "NearData_container_results_bucket_name" {
-  bucket = "neardata-bucket-results-hpc"
+  bucket = "neardata-salmon-hpc-results"
 }
 
 data "aws_s3_bucket" "NearData_container_metadata_bucket_name" {
-  bucket = "neardata-bucket-results-hpc-metadata"
+  bucket = "neardata-salmon-hpc-metadata"
 }
 
-data "aws_iam_instance_profile" "labRole_profile" {
-  name = "LabInstanceProfile"
+data "aws_iam_instance_profile" "NearData_ec2_role" {
+  name = "neardata-ec2-role"
 }
 
 resource "aws_sqs_queue" "NearData_queue" {
@@ -152,7 +152,7 @@ resource "aws_security_group" "NearData_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["195.150.12.215/32", "5.173.49.232/32"]
+    cidr_blocks = ["195.150.12.215/32", "5.173.49.232/32", "94.254.191.79/32"]
   }
 
   egress {
@@ -170,9 +170,9 @@ resource "aws_security_group" "NearData_sg" {
 
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-0ebb995fac9a140ef"
+  image_id      = "ami-0bf898f183b27114f"
   instance_type = "m6a.large"
-  key_name      = "vockey"
+  key_name      = "neardata-pk"
   user_data     = base64encode(file("init.sh"))
   ebs_optimized = true
 
@@ -186,7 +186,7 @@ resource "aws_launch_template" "NearData_lt" {
   }
 
   iam_instance_profile {
-    arn = data.aws_iam_instance_profile.labRole_profile.arn
+    arn = data.aws_iam_instance_profile.NearData_ec2_role.arn
   }
 
   tags = {
