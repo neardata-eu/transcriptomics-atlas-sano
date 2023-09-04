@@ -1,13 +1,16 @@
 # Transcriptomics Atlas Pipeline: Cloud vs HPC - Reproducibility Guide:
 
-1. Create a single EC2 instance on AWS (or use my AMI: `ami-0ebb995fac9a140ef` and skip to point 4):
+1. Create a single EC2 instance on AWS (or use my AMI: `ami-0ebb995fac9a140ef` and skip to point 5):
     * Type: m6a.large, 100GB EBS (GP3 type, 250MiB/s throughput, 3000IOPS)
     * Copy and install `ec2_install.sh` from `./TranscriptomicsAtlas/EC2`
-2. Generate Salmon index:
+2. Prepare source code and CW Agent config
+    * Create a bucket, upload `src/Consumer` code, uncomment lines `Terraform/init.sh`, replace the s3 path with your bucket name.
+    * Upload `EC2/ec2_cwagent_config.json` to SSM Parameter Store as an advanced parameter named `ec2_cwagent_config`.
+3. Generate Salmon index:
     * Download using wget: `https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz`
     * Unpack and run `salmon index -t Homo_sapiens.GRCh38.cdna.all.fa -i /opt/TAtlas/salmon_index`
-3. Create AMI from the instance 
-4. Set up infrastructure:
+4. Create AMI from the instance 
+5. Set up infrastructure:
    * Install Terraform
    * Update `main.tf` in `./TranscriptomicsAtlas/Terraform`
       - Update image_id in launch_template with your newly created
@@ -15,7 +18,7 @@
       - Create IAM instance profile with access permissions to CloudWatch and S3, update the script
       - If you want to SSH to any instance - update security group with your IP address and generate new access key (replace "vockey" in launch template)
    * Run `terraform apply` in `./TranscriptomicsAtlas/Terraform`
-5. Prepare and run EC2 experiments:
+6. Prepare and run EC2 experiments:
     * Update `./MetricsExporter/metrics_exporter.py` with current time and instance-ids of your 8 running instances.
       * The end_time in this script should be 3 hours from now. Since CloudWatch metrics are retained only for 3 hours for sub-minute granularity you may need to run `metrics_exporter.py` twice (with new start_time and end_time) if the simulation does not finish within 3 hours. Beware: the script overwrites files in the same directory thus update paths for 2nd execution to prevent overwrite, then merge first 3 hours of metrics and the rest. # TODO simplify 
     * Verify queue name in `./TranscriptomicsAtlas/src/Producer/producer.py`
@@ -24,7 +27,7 @@
     * Turn off EC2 instances.
     * Download metadata from the S3 bucket you created to `Metrics_exporter/metadata/{current_date}`.
     * Update paths to your data in `MetricsExporter/performance_analysis.ipynb` and run it.
-6. Prepare and run HPC experiments:
+7. Prepare and run HPC experiments:
    * Have a Docker installed and a DockerHub account. Connect/Log-in to DockerHub using Docker.
    * Create a repository on DockerHub, update path to your repository in `TranscriptomicsAtlas/Makefile`
    * Run `make all` in `TranscriptomicsAtlas` directory

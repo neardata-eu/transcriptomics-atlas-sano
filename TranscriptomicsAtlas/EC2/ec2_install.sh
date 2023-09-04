@@ -22,7 +22,7 @@ echo 'export PATH="$PATH":/opt/TAtlas/salmon-latest_linux_x86_64/bin' >> ~/.bash
 
 ### PYTHON MODULES
 sudo apt-get install python3-pip -y
-pip3 install boto3 watchtower requests --no-cache-dir
+pip3 install boto3 watchtower requests backoff --no-cache-dir
 
 ### R
 wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc
