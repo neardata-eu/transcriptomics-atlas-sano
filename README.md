@@ -1,11 +1,14 @@
 # Transcriptomics Atlas Pipeline: Cloud vs HPC - Reproducibility Guide:
 
 1. Create a single EC2 instance on AWS (or use my AMI: `ami-0ebb995fac9a140ef` and skip to point 5):
-    * Type: m6a.large, 100GB EBS (GP3 type, 250MiB/s throughput, 3000IOPS)
+    * Type: Ubuntu Server 22.04, m6a.large, 100GB EBS (GP3 type, 250MiB/s throughput, 3000IOPS)
+    * Upload `EC2/ec2_cwagent_config.json` to SSM Parameter Store as an advanced parameter named `ec2_cwagent_config`. 
     * Copy and install `ec2_install.sh` from `./TranscriptomicsAtlas/EC2`
-2. Prepare source code and CW Agent config
-    * Create a bucket, upload `src/Consumer` code, uncomment lines `Terraform/init.sh`, replace the s3 path with your bucket name.
-    * Upload `EC2/ec2_cwagent_config.json` to SSM Parameter Store as an advanced parameter named `ec2_cwagent_config`.
+    * Copy `data/.ncbi` to `/home/ubuntu/.ncbi`
+2. Prepare source code
+    * Upload `src/Consumer` code to the instance. 
+    * Upload `src/scripts/count_normalization.R` to `/opt/TAtlas/DESeq2/count_normalization.R`
+    * Upload `data/DESeq2/tx2gene.gencode.v42.csv` to `/opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv`
 3. Generate Salmon index:
     * Download using wget: `https://ftp.ensembl.org/pub/release-109/fasta/homo_sapiens/cdna/Homo_sapiens.GRCh38.cdna.all.fa.gz`
     * Unpack and run `salmon index -t Homo_sapiens.GRCh38.cdna.all.fa -i /opt/TAtlas/salmon_index`
