@@ -189,6 +189,13 @@ resource "aws_launch_template" "NearData_lt" {
     arn = data.aws_iam_instance_profile.NearData_ec2_role.arn
   }
 
+  instance_market_options {
+    market_type = "spot"
+    spot_options {
+      instance_interruption_behavior = "terminate"  # TODO handle termination request in code
+    }
+  }
+
   block_device_mappings {
     device_name = "/dev/sda1"
     ebs {
@@ -213,16 +220,22 @@ resource "aws_launch_template" "NearData_lt" {
   }
 }
 
-#resource "aws_autoscaling_group" "NearData_asg" {
-#  name                      = "NearData_asg"
-#  min_size                  = 1
-#  desired_capacity          = 8
-#  max_size                  = 8
-#  vpc_zone_identifier       = values(aws_subnet.NearData_Subnets)[*].id
-#  wait_for_capacity_timeout = 0
-#
-#  launch_template {
-#    id      = aws_launch_template.NearData_lt.id
-#    version = "$Latest"
-#  }
-#}
+resource "aws_autoscaling_group" "NearData_asg" {
+  name                      = "NearData_asg"
+  min_size                  = 1
+  desired_capacity          = 8
+  max_size                  = 8
+  vpc_zone_identifier       = values(aws_subnet.NearData_Subnets)[*].id
+  wait_for_capacity_timeout = 0
+
+  launch_template {
+    id      = aws_launch_template.NearData_lt.id
+    version = "$Latest"
+  }
+
+  tag {
+    key                 = "Project"
+    value               = "NearData"
+    propagate_at_launch = true
+  }
+}
