@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import subprocess
 from datetime import datetime
@@ -74,6 +75,7 @@ def deseq2(srr_id):
 
 class SalmonPipeline:
     srr_id: str
+    tissue_name: str
     fastq_dir: str
     metadata_dir: str = "/home/ubuntu/TAtlas/metadata"
     metadata = nested_dict()
@@ -87,8 +89,8 @@ class SalmonPipeline:
     s3_bucket_name = get_ssm_parameter(param_name=s3_bucket_name_param)
     s3_metadata_bucket_name = get_ssm_parameter(param_name=s3_metadata_bucket_name_param)
 
-    def __init__(self, srr_id):
-        self.srr_id = srr_id
+    def __init__(self, message):
+        self.tissue_name, self.srr_id = message.split("-")
         self.fastq_dir = f"/home/ubuntu/TAtlas/fastq/{self.srr_id}"
         os.makedirs(self.metadata_dir, exist_ok=True)
         os.makedirs(self.fastq_dir, exist_ok=True)
@@ -106,7 +108,7 @@ class SalmonPipeline:
         )
 
         self.make_timestamps(
-            salmon, self.srr_id, self.fastq_dir
+            salmon, self.srr_id, self.fastq_dir, self.metadata
         )
 
         self.make_timestamps(
@@ -119,12 +121,12 @@ class SalmonPipeline:
 
     def check_if_results_exist_in_s3(self):
         logger.info("Checking if the pipeline has already been run")
-        path_to_file = f'normalized_counts/{self.srr_id}/{self.srr_id}_normalized_counts.txt'
+        path_to_file = f'{self.tissue_name}/{self.srr_id}_normalized_counts.txt'
         if not check_file_exists(self.s3_bucket_name, path_to_file):
             logger.info("File not found, starting the pipeline")
             return False
         else:
-            logger.info("Results exist in S3 bucket, exiting")
+            logger.info("Results exist in S3 bucket, skipping.")
             return True
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
@@ -136,7 +138,7 @@ class SalmonPipeline:
         logger.info("S3 upload starting")
         self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
                                         self.s3_bucket_name,
-                                        f"{self.srr_id}_normalized_counts.txt")
+                                        f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
@@ -162,7 +164,7 @@ class SalmonPipeline:
         logger.info("S3 upload metadata starting")
         self.s3.meta.client.upload_file(f'{self.metadata_dir}/{self.srr_id}_metadata.json',
                                         self.s3_metadata_bucket_name,
-                                        f"{self.srr_id}_metadata.json")
+                                        f"{self.tissue_name}/{self.srr_id}_metadata.json")
         logger.info("S3 upload metadata finished")
 
     def clean(self):
