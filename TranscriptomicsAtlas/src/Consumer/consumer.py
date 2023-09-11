@@ -19,7 +19,7 @@ nproc = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
 logger.info(f"Nproc={nproc}")
 
 
-@backoff.on_exception(backoff.constant, PipelineError, max_tries=4, logger=logger)
+@backoff.on_exception(backoff.constant, PipelineError, max_tries=2, logger=logger)
 @log_output
 def prefetch(srr_id):
     prefetch_result = subprocess.run(
@@ -29,7 +29,7 @@ def prefetch(srr_id):
     return prefetch_result
 
 
-@backoff.on_exception(backoff.constant, PipelineError, max_tries=4, logger=logger)
+@backoff.on_exception(backoff.constant, PipelineError, max_tries=2, logger=logger)
 @log_output
 def fasterq_dump(srr_id, fastq_dir):
     fasterq_result = subprocess.run(
