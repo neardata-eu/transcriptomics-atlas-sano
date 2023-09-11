@@ -1,9 +1,9 @@
 data "aws_s3_bucket" "NearData_results_bucket_name" {
-  bucket = "neardata-salmon-ec2-results"
+  bucket = "neardata-tissues-salmon-results"
 }
 
 data "aws_s3_bucket" "NearData_metadata_bucket_name" {
-  bucket = "neardata-salmon-ec2-metadata"
+  bucket = "neardata-tissues-salmon-metadata"
 }
 
 data "aws_s3_bucket" "NearData_container_results_bucket_name" {
@@ -170,7 +170,7 @@ resource "aws_security_group" "NearData_sg" {
 
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-0bf898f183b27114f"
+  image_id      = "ami-03c6be1fd52a83cda"
   instance_type = "m6a.large"
   key_name      = "neardata-pk"
   user_data     = base64encode(file("init.sh"))
@@ -197,7 +197,7 @@ resource "aws_launch_template" "NearData_lt" {
     resource_type = "instance"
 
     tags = {
-      Name    = "NearData_v2.1-lt"
+      Name    = "NearData_v2.2-lt"
       Project = "NearData"
     }
   }
