@@ -189,6 +189,16 @@ resource "aws_launch_template" "NearData_lt" {
     arn = data.aws_iam_instance_profile.NearData_ec2_role.arn
   }
 
+  block_device_mappings {
+    device_name = "/dev/sda1"
+    ebs {
+      volume_size = 250
+      volume_type = "gp3"
+      iops        = 3000
+      throughput  = 250
+    }
+  }
+
   tags = {
     Project = "NearData"
   }
