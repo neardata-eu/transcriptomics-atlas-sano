@@ -40,7 +40,7 @@ def fasterq_dump(srr_id, fastq_dir):
 
 
 @log_output
-def salmon(srr_id, fastq_dir):
+def salmon(srr_id, fastq_dir, metadata):
     index_path = "/opt/TAtlas/salmon_index/"
     quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
@@ -58,8 +58,20 @@ def salmon(srr_id, fastq_dir):
             capture_output=True, text=True, env=my_env, cwd=work_dir
         )
 
-    if "Found no concordant and consistent mappings." in salmon_result.stderr:
+    salmon_output = salmon_result.stderr
+    if "Found no concordant and consistent mappings." in salmon_output:
         raise PipelineError(f"Found no concordant and consistent mappings for {srr_id}. Aborting the pipeline.")
+
+    pattern = r'Mapping rate = (.*)%'
+    match = re.search(pattern, salmon_output)
+    if match:
+        mapping_rate = float(match.group(1))
+    else:
+        raise PipelineError("Mapping rate not found. Aborting the pipeline.")
+
+    metadata["salmon_mapping_rate [%]"] = mapping_rate
+    # if mapping_rate < 30:
+    #     raise PipelineError("Mapping rate below threshold. Aborting the pipeline.")
 
     return salmon_result
 
