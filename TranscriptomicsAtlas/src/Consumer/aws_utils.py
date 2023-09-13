@@ -8,9 +8,6 @@ if "RUN_IN_CONTAINER" not in os.environ:
 
 from logger import logger  # NOQA
 
-ssm = boto3.client("ssm")
-sqs = boto3.resource("sqs")
-
 
 def srr_id_in_metadata_table(table, SRR_id):
     if "Item" in table.get_item(Key={"SRR_id": SRR_id}):
@@ -28,12 +25,14 @@ def get_instance_id():
 
 
 def get_ssm_parameter(param_name):
+    ssm = boto3.client("ssm")
     ssm_param = ssm.get_parameter(Name=param_name, WithDecryption=True)
     param_value = ssm_param['Parameter']['Value']
     return param_value
 
 
 def get_sqs_queue():
+    sqs = boto3.resource("sqs")
     if "RUN_IN_CONTAINER" not in os.environ:
         queue_name = get_ssm_parameter("/neardata/queue_name")
     else:
