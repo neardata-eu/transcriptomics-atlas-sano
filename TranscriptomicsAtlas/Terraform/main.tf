@@ -2,16 +2,8 @@ data "aws_s3_bucket" "NearData_results_bucket_name" {
   bucket = "neardata-tissues-salmon-results"
 }
 
-data "aws_s3_bucket" "NearData_metadata_bucket_name" {
-  bucket = "neardata-tissues-salmon-metadata"
-}
-
 data "aws_s3_bucket" "NearData_container_results_bucket_name" {
   bucket = "neardata-salmon-hpc-results"
-}
-
-data "aws_s3_bucket" "NearData_container_metadata_bucket_name" {
-  bucket = "neardata-salmon-hpc-metadata"
 }
 
 data "aws_iam_instance_profile" "NearData_ec2_role" {
@@ -106,30 +98,10 @@ resource "aws_ssm_parameter" "s3_bucket" {
   }
 }
 
-resource "aws_ssm_parameter" "s3_bucket_metadata" {
-  name  = "/neardata/s3_bucket_metadata_name"
-  type  = "String"
-  value = data.aws_s3_bucket.NearData_metadata_bucket_name.bucket
-
-  tags = {
-    Project = "NearData"
-  }
-}
-
 resource "aws_ssm_parameter" "s3_bucket_container" {
   name  = "/neardata/s3_bucket_name/container"
   type  = "String"
   value = data.aws_s3_bucket.NearData_container_results_bucket_name.bucket
-
-  tags = {
-    Project = "NearData"
-  }
-}
-
-resource "aws_ssm_parameter" "s3_bucket_metadata_container" {
-  name  = "/neardata/s3_bucket_metadata_name/container"
-  type  = "String"
-  value = data.aws_s3_bucket.NearData_container_metadata_bucket_name.bucket
 
   tags = {
     Project = "NearData"
@@ -164,6 +136,22 @@ resource "aws_security_group" "NearData_sg" {
 
   tags = {
     Name    = "NearData_SG"
+    Project = "NearData"
+  }
+}
+
+resource "aws_dynamodb_table" "NearData_db" {
+  name         = "neardata-tissues-salmon-metadata"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "SRR_id"
+
+  attribute {
+    name = "SRR_id"
+    type = "S"
+  }
+
+  tags = {
+    Name    = "NearData_db"
     Project = "NearData"
   }
 }

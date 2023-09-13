@@ -1,6 +1,5 @@
 import os
 import boto3
-import botocore
 import requests
 
 if "RUN_IN_CONTAINER" not in os.environ:
@@ -11,17 +10,11 @@ from logger import logger  # NOQA
 
 ssm = boto3.client("ssm")
 sqs = boto3.resource("sqs")
-s3 = boto3.resource('s3')
 
 
-def check_file_exists(s3_bucket_name, path_to_file):
-    try:
-        s3.Object(s3_bucket_name, path_to_file).load()
+def srr_id_in_metadata_table(table, SRR_id):
+    if "Item" in table.get_item(Key={"SRR_id": SRR_id}):
         return True
-    except botocore.exceptions.ClientError as e:
-        if e.response['Error']['Code'] != "404":
-            logger.warning(e)
-
     return False
 
 

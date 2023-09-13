@@ -2,12 +2,13 @@ import os
 import re
 import json
 import subprocess
+from decimal import Decimal
 from datetime import datetime
 
 import boto3
 import backoff
 
-from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, check_file_exists
+from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, srr_id_in_metadata_table
 from logger import logger, log_output
 from utils import clean_dir, nested_dict, PipelineError
 
@@ -93,13 +94,12 @@ class SalmonPipeline:
     metadata = nested_dict()
 
     s3 = boto3.resource('s3')
+    metadata_table = boto3.resource('dynamodb').Table("neardata-tissues-salmon-metadata")
+
     s3_bucket_name_param = "/neardata/s3_bucket_name"
-    s3_metadata_bucket_name_param = "/neardata/s3_bucket_metadata_name"
     if "RUN_IN_CONTAINER" in os.environ:
         s3_bucket_name_param += "/container"
-        s3_metadata_bucket_name_param += "/container"
     s3_bucket_name = get_ssm_parameter(param_name=s3_bucket_name_param)
-    s3_metadata_bucket_name = get_ssm_parameter(param_name=s3_metadata_bucket_name_param)
 
     def __init__(self, message):
         self.tissue_name, self.srr_id = message.split("-")
@@ -108,7 +108,7 @@ class SalmonPipeline:
         os.makedirs(self.fastq_dir, exist_ok=True)
 
     def start(self):
-        if self.check_if_results_exist_in_s3():
+        if self.check_if_file_already_processed():
             return
 
         self.make_timestamps(
@@ -131,14 +131,13 @@ class SalmonPipeline:
         self.gather_metadata()
         self.upload_metadata()
 
-    def check_if_results_exist_in_s3(self):
-        logger.info("Checking if the pipeline has already been run")
-        path_to_file = f'{self.tissue_name}/{self.srr_id}_normalized_counts.txt'
-        if not check_file_exists(self.s3_bucket_name, path_to_file):
-            logger.info("File not found, starting the pipeline")
+    def check_if_file_already_processed(self):
+        logger.info("Checking if the pipeline has already been run.")
+        if not srr_id_in_metadata_table(self.metadata_table, self.srr_id):
+            logger.info("SRR_id not found in metadata table, starting the pipeline")
             return False
         else:
-            logger.info("Results exist in S3 bucket, skipping.")
+            logger.info("SRR_id found in metadata table, skipping.")
             return True
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
@@ -174,11 +173,10 @@ class SalmonPipeline:
             json.dump(self.metadata, f, indent=4)
 
     def upload_metadata(self):
-        logger.info("S3 upload metadata starting")
-        self.s3.meta.client.upload_file(f'{self.metadata_dir}/{self.srr_id}_metadata.json',
-                                        self.s3_metadata_bucket_name,
-                                        f"{self.tissue_name}/{self.srr_id}_metadata.json")
-        logger.info("S3 upload metadata finished")
+        logger.info("DynamoDB upload metadata starting")
+        item = json.loads(json.dumps(self.metadata), parse_float=Decimal)
+        self.metadata_table.put_item(Item=item)
+        logger.info("DynamoDB upload metadata finished")
 
     def clean(self):
         logger.info("Starting removing generated files")
