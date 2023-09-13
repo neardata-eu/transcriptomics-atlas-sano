@@ -199,7 +199,7 @@ if __name__ == "__main__":
             try:
                 pipeline = SalmonPipeline(message.body)
                 pipeline.start()
-            except PipelineError as e:
+            except Exception as e:
                 logger.warning(e)
             finally:
                 pipeline.clean()
