@@ -142,9 +142,9 @@ class SalmonPipeline:
             return True
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
-        self.metadata["timestamps"][pipeline_func.__name__]["start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.metadata[pipeline_func.__name__+"_start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         pipeline_func(*args, **kwargs)
-        self.metadata["timestamps"][pipeline_func.__name__]["end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.metadata[pipeline_func.__name__+"_end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
@@ -162,8 +162,9 @@ class SalmonPipeline:
             fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + \
                              os.stat(f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
 
-        self.metadata["instance_id"] = get_instance_id()
         self.metadata["SRR_id"] = self.srr_id
+        self.metadata["tissue_name"] = self.tissue_name
+        self.metadata["instance_id"] = get_instance_id()
         self.metadata["SRR_filesize_bytes"] = srr_filesize
         self.metadata["fastq_filesize_bytes"] = fastq_filesize
         self.metadata["execution_mode"] = "EC2" if "RUN_IN_CONTAINER" not in os.environ else "Container"
