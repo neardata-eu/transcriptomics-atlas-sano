@@ -2,6 +2,10 @@ data "aws_s3_bucket" "NearData_results_bucket_name" {
   bucket = "neardata-tissues-salmon-results"
 }
 
+data "aws_s3_bucket" "NearData_results_bucket_name_low_mr" {
+  bucket = "neardata-tissues-salmon-results-low-mr"
+}
+
 data "aws_s3_bucket" "NearData_container_results_bucket_name" {
   bucket = "neardata-salmon-hpc-results"
 }
@@ -92,6 +96,16 @@ resource "aws_ssm_parameter" "s3_bucket" {
   name  = "/neardata/s3_bucket_name"
   type  = "String"
   value = data.aws_s3_bucket.NearData_results_bucket_name.bucket
+
+  tags = {
+    Project = "NearData"
+  }
+}
+
+resource "aws_ssm_parameter" "s3_bucket_low_mr" {
+  name  = "/neardata/s3_bucket_name_low_mr"
+  type  = "String"
+  value = data.aws_s3_bucket.NearData_results_bucket_name_low_mr.bucket
 
   tags = {
     Project = "NearData"

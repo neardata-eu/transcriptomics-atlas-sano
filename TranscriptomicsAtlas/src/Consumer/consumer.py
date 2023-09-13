@@ -71,8 +71,6 @@ def salmon(srr_id, fastq_dir, metadata):
         raise PipelineError("Mapping rate not found. Aborting the pipeline.")
 
     metadata["salmon_mapping_rate [%]"] = mapping_rate
-    # if mapping_rate < 30:
-    #     raise PipelineError("Mapping rate below threshold. Aborting the pipeline.")
 
     return salmon_result
 
@@ -97,9 +95,12 @@ class SalmonPipeline:
     metadata_table = boto3.resource('dynamodb').Table("neardata-tissues-salmon-metadata")
 
     s3_bucket_name_param = "/neardata/s3_bucket_name"
+    s3_bucket_name_param_low_mr_param = "/neardata/s3_bucket_name_low_mr"
+
     if "RUN_IN_CONTAINER" in os.environ:
         s3_bucket_name_param += "/container"
     s3_bucket_name = get_ssm_parameter(param_name=s3_bucket_name_param)
+    s3_bucket_name_low_mr = get_ssm_parameter(param_name=s3_bucket_name_param_low_mr_param)
 
     def __init__(self, message):
         self.tissue_name, self.srr_id = message.split("-")
@@ -147,9 +148,16 @@ class SalmonPipeline:
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
-        self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
-                                        self.s3_bucket_name,
-                                        f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
+        if self.metadata["salmon_mapping_rate [%]"] >= 30:
+            self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
+                                            self.s3_bucket_name,
+                                            f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
+            self.metadata["bucket"] = self.s3_bucket_name
+        else:
+            self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
+                                            self.s3_bucket_name_low_mr,
+                                            f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
+            self.metadata["bucket"] = self.s3_bucket_name_low_mr
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
