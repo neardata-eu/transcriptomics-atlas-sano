@@ -136,22 +136,16 @@ class SalmonPipeline:
             return True
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
-        self.metadata[pipeline_func.__name__+"_start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.metadata[pipeline_func.__name__ + "_start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
         pipeline_func(*args, **kwargs)
-        self.metadata[pipeline_func.__name__+"_end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        self.metadata[pipeline_func.__name__ + "_end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
-        if self.metadata["salmon_mapping_rate [%]"] >= 30:
-            self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
-                                            self.s3_bucket_name,
-                                            f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
-            self.metadata["bucket"] = self.s3_bucket_name
-        else:
-            self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
-                                            self.s3_bucket_name_low_mr,
-                                            f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
-            self.metadata["bucket"] = self.s3_bucket_name_low_mr
+        bucket = self.s3_bucket_name if self.metadata["salmon_mapping_rate [%]"] >= 30 else self.s3_bucket_name_low_mr
+        self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
+                                        bucket, f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
+        self.metadata["bucket"] = bucket
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
@@ -208,4 +202,3 @@ if __name__ == "__main__":
                 logger.info("Processed and deleted msg. Awaiting next one")
     except Exception as e:
         logger.warning(e)
-
