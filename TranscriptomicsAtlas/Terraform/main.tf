@@ -49,6 +49,9 @@ resource "aws_ssm_parameter" "ec2_cwagent_config" {
   type        = "String"
   value       = file("${path.module}/../EC2/ec2_cwagent_config.json")
   tier        = "Advanced"
+  tags = {
+    Project = "NearData"
+  }
 }
 
 resource "aws_security_group" "NearData_sg" {
@@ -79,6 +82,7 @@ resource "aws_dynamodb_table" "NearData_db" {
   name         = "neardata-tissues-salmon-metadata"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "SRR_id"
+  deletion_protection_enabled = true
 
   attribute {
     name = "SRR_id"
@@ -88,6 +92,10 @@ resource "aws_dynamodb_table" "NearData_db" {
   tags = {
     Name    = "NearData_db"
     Project = "NearData"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
