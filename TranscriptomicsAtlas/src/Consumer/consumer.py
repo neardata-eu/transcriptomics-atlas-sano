@@ -8,7 +8,7 @@ from datetime import datetime
 import boto3
 import backoff
 
-from aws_utils import get_ssm_parameter, get_sqs_queue, get_instance_id, srr_id_in_metadata_table
+from aws_utils import get_instance_id, srr_id_in_metadata_table
 from logger import logger, log_output
 from utils import clean_dir, nested_dict, PipelineError
 
@@ -92,15 +92,9 @@ class SalmonPipeline:
     metadata = nested_dict()
 
     s3 = boto3.resource('s3')
-    metadata_table = boto3.resource('dynamodb').Table("neardata-tissues-salmon-metadata")
-
-    s3_bucket_name_param = "/neardata/s3_bucket_name"
-    s3_bucket_name_param_low_mr_param = "/neardata/s3_bucket_name_low_mr"
-
-    if "RUN_IN_CONTAINER" in os.environ:
-        s3_bucket_name_param += "/container"
-    s3_bucket_name = get_ssm_parameter(param_name=s3_bucket_name_param)
-    s3_bucket_name_low_mr = get_ssm_parameter(param_name=s3_bucket_name_param_low_mr_param)
+    metadata_table = boto3.resource('dynamodb').Table(os.environ["dynamodb_metadata_table"])
+    s3_bucket_name = os.environ["s3_bucket_name"]
+    s3_bucket_name_low_mr = os.environ["s3_bucket_name_low_mr"]
 
     def __init__(self, message):
         self.tissue_name, self.srr_id = message.split("-")
@@ -196,7 +190,7 @@ class SalmonPipeline:
 
 
 if __name__ == "__main__":
-    queue = get_sqs_queue()
+    queue = boto3.resource("sqs").get_queue_by_name(QueueName=os.environ["queue_name"])
     logger.info("Awaiting messages")
     while True:
         messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)

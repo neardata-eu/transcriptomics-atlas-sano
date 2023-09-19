@@ -29,13 +29,3 @@ def get_ssm_parameter(param_name):
     ssm_param = ssm.get_parameter(Name=param_name, WithDecryption=True)
     param_value = ssm_param['Parameter']['Value']
     return param_value
-
-
-def get_sqs_queue():
-    sqs = boto3.resource("sqs")
-    if "RUN_IN_CONTAINER" not in os.environ:
-        queue_name = get_ssm_parameter("/neardata/queue_name")
-    else:
-        queue_name = get_ssm_parameter("/neardata/queue_name_container")
-    queue = sqs.get_queue_by_name(QueueName=queue_name)
-    return queue

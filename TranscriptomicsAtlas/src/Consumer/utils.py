@@ -18,3 +18,9 @@ def clean_dir(path):
         for dir_name in dirs:
             dir_path = os.path.join(root, dir_name)
             os.rmdir(dir_path)
+
+
+def measure_size_if_exists(filepath):
+    if os.path.exists(filepath):
+        return os.stat(filepath).st_size
+    return 0
