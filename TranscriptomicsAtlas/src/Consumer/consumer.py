@@ -190,18 +190,22 @@ class SalmonPipeline:
 
 
 if __name__ == "__main__":
-    queue = boto3.resource("sqs").get_queue_by_name(QueueName=os.environ["queue_name"])
-    logger.info("Awaiting messages")
-    while True:
-        messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
-        for message in messages:
-            logger.info(f"Received msg={message.body}")
-            try:
-                pipeline = SalmonPipeline(message.body)
-                pipeline.start()
-            except Exception as e:
-                logger.warning(e)
-            finally:
-                pipeline.clean()
-            message.delete()
-            logger.info("Processed and deleted msg. Awaiting next one")
+    try:
+        queue = boto3.resource("sqs").get_queue_by_name(QueueName=os.environ["queue_name"])
+        logger.info("Awaiting messages")
+        while True:
+            messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
+            for message in messages:
+                logger.info(f"Received msg={message.body}")
+                try:
+                    pipeline = SalmonPipeline(message.body)
+                    pipeline.start()
+                except Exception as e:
+                    logger.warning(e)
+                finally:
+                    pipeline.clean()
+                message.delete()
+                logger.info("Processed and deleted msg. Awaiting next one")
+    except Exception as e:
+        logger.warning(e)
+
