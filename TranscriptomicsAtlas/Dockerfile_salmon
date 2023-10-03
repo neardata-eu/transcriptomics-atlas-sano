@@ -33,7 +33,6 @@ RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/
     rm amazon-cloudwatch-agent.deb
 COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
 ENV AWS_DEFAULT_REGION="us-east-1"
-ENV AWS_SHARED_CREDENTIALS_FILE=/root/.aws/credentials
 
 # Config for sratoolkit untill I find a way to configure it using cli/bash
 COPY data/.ncbi /root/.ncbi
@@ -44,5 +43,10 @@ COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.
 COPY src/scripts/count_normalization.R /opt/TAtlas/DESeq2/count_normalization.R
 COPY src/Consumer /opt/TAtlas/Consumer
 COPY container_start.py /opt/TAtlas/container_start.py
+
+ENV queue_name="NearData_queue"
+ENV s3_bucket_name="neardata-tissues-salmon-results"
+ENV s3_bucket_name_low_mr="neardata-tissues-salmon-results-low-mr"
+ENV dynamodb_metadata_table="neardata-tissues-salmon-metadata"
 
 ENTRYPOINT ["python3", "/opt/TAtlas/container_start.py"]
