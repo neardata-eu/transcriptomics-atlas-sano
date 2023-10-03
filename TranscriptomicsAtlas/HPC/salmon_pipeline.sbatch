@@ -24,6 +24,7 @@ apptainer run --home /home/ubuntu --compat \
               --mount type=bind,source=$TMPDIR,destination=/home/ubuntu/TAtlas \
               --mount type=bind,source=$TMPDIR,destination=/opt/aws/amazon-cloudwatch-agent/etc/ \
               --env AWS_SHARED_CREDENTIALS_FILE=/home/ubuntu/.aws/credentials \
-              --env HOSTNAME=$SLURM_JOB_ID \
-              /net/people/plgrid/plgpkica/salmon/salmonpipeline_v2.sif
+              --env SLURM_JOB_ID=$SLURM_JOB_ID \
+              /net/ascratch/people/plgpkica/neardata/salmonpipeline_backoff.sif bash
+
 
