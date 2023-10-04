@@ -3,8 +3,7 @@ resource "aws_vpc" "NearData_VPC" {
   enable_dns_hostnames = true
 
   tags = {
-    Name    = "NearData_VPC"
-    Project = "NearData"
+    Name = "NearData_VPC"
   }
 
 }
@@ -37,8 +36,7 @@ resource "aws_subnet" "NearData_Subnets" {
   availability_zone = each.value["availability_zone"]
 
   tags = {
-    Name    = "NearData_${each.key}"
-    Project = "NearData"
+    Name = "NearData_${each.key}"
   }
 }
 
@@ -46,8 +44,7 @@ resource "aws_internet_gateway" "NearData_IG" {
   vpc_id = aws_vpc.NearData_VPC.id
 
   tags = {
-    Name    = "NearData_IGW"
-    Project = "NearData"
+    Name = "NearData_IGW"
   }
 }
 
@@ -60,8 +57,7 @@ resource "aws_route_table" "NearData_RT" {
   }
 
   tags = {
-    Name    = "NearData_RT"
-    Project = "NearData"
+    Name = "NearData_RT"
   }
 }
 
