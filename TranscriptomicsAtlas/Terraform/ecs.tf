@@ -51,25 +51,29 @@ resource "aws_ecs_task_definition" "NearData_task_definition" {
   task_role_arn            = "arn:aws:iam::542811361644:role/neardata-ec2-role"
 }
 
-resource "aws_ecs_service" "SalmonPipeline_service" {
-  name                               = "SalmonPipeline"
-  cluster                            = aws_ecs_cluster.NearData_cluster.id
-  task_definition                    = aws_ecs_task_definition.NearData_task_definition.family
-  desired_count                      = 1
-  launch_type                        = "FARGATE"
-  deployment_minimum_healthy_percent = "0"
-  deployment_maximum_percent         = "100"
-  enable_ecs_managed_tags            = "true"
-  enable_execute_command             = true
-
-  network_configuration {
-    subnets          = values(aws_subnet.NearData_Subnets)[*].id
-    security_groups  = [aws_security_group.NearData_sg.id]
-    assign_public_ip = true
-  }
-  deployment_circuit_breaker {
-    enable   = "true"
-    rollback = "true"
-  }
-  platform_version = "LATEST"
-}
+#resource "aws_ecs_service" "SalmonPipeline_service" {
+#  name                               = "SalmonPipeline"
+#  cluster                            = aws_ecs_cluster.NearData_cluster.id
+#  task_definition                    = aws_ecs_task_definition.NearData_task_definition.family
+#  desired_count                      = 2
+#  deployment_minimum_healthy_percent = "0"
+#  deployment_maximum_percent         = "100"
+#  enable_ecs_managed_tags            = "true"
+#  enable_execute_command             = true
+#
+#  capacity_provider_strategy {
+#    capacity_provider = "FARGATE_SPOT"
+#    weight = 1
+#  }
+#
+#  network_configuration {
+#    subnets          = values(aws_subnet.NearData_Subnets)[*].id
+#    security_groups  = [aws_security_group.NearData_sg.id]
+#    assign_public_ip = true
+#  }
+#  deployment_circuit_breaker {
+#    enable   = "true"
+#    rollback = "true"
+#  }
+#  platform_version = "LATEST"
+#}
