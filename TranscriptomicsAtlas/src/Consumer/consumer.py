@@ -24,9 +24,13 @@ logger.info(f"Nproc={nproc}")
 @log_output
 def prefetch(srr_id):
     prefetch_result = subprocess.run(
-        ["prefetch", srr_id],
+        ["prefetch", srr_id, "--min-size", "200m", "--max-size", "30g"],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
+
+    if "is smaller than minimum allowed: skipped" in prefetch_result.stderr or \
+       "is larger than maximum allowed: skipped" in prefetch_result.stderr:
+        raise PipelineError(prefetch_result.stderr)
     return prefetch_result
 
 
