@@ -7,6 +7,7 @@ echo export queue_name="NearData_queue"
 echo export s3_bucket_name="neardata-salmon-ec2-results"
 echo export s3_bucket_name_low_mr="neardata-salmon-ec2-results-low-mr"
 echo export dynamodb_metadata_table="neardata-test-table"
+echo export execution_mode="EC2"
 } >> /etc/environment
 
 su ubuntu -c "python3 /opt/TAtlas/Consumer/consumer.py"

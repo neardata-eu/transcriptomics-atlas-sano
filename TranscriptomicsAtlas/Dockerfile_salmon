@@ -48,5 +48,6 @@ ENV queue_name="NearData_queue"
 ENV s3_bucket_name="neardata-tissues-salmon-results"
 ENV s3_bucket_name_low_mr="neardata-tissues-salmon-results-low-mr"
 ENV dynamodb_metadata_table="neardata-tissues-salmon-metadata"
+ENV execution_mode="Container"
 
 ENTRYPOINT ["python3", "/opt/TAtlas/container_start.py"]

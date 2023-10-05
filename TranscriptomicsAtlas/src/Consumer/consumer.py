@@ -162,7 +162,7 @@ class SalmonPipeline:
         self.metadata["instance_id"] = get_instance_id()
         self.metadata["SRR_filesize_bytes"] = srr_filesize
         self.metadata["fastq_filesize_bytes"] = fastq_filesize
-        self.metadata["execution_mode"] = "EC2" if "RUN_IN_CONTAINER" not in os.environ else "Container"
+        self.metadata["execution_mode"] = os.environ["execution_mode"]
 
         logger.info("Saving metadata")
         with open(f'{self.metadata_dir}/{self.srr_id}_metadata.json', "w+") as f:

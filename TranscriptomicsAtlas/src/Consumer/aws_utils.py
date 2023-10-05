@@ -2,9 +2,8 @@ import os
 import boto3
 import requests
 
-if "RUN_IN_CONTAINER" not in os.environ:
-    metadata_url = 'http://169.254.169.254/latest/meta-data/'
-    os.environ['AWS_DEFAULT_REGION'] = requests.get(metadata_url + 'placement/region').text
+if os.environ["execution_mode"] == "EC2":
+    os.environ['AWS_DEFAULT_REGION'] = requests.get('http://169.254.169.254/latest/meta-data/placement/region').text
 
 from logger import logger  # NOQA
 
@@ -16,8 +15,10 @@ def srr_id_in_metadata_table(table, SRR_id):
 
 
 def get_instance_id():
-    if "RUN_IN_CONTAINER" not in os.environ:
-        instance_id = requests.get(metadata_url + 'instance-id').text
+    if os.environ["execution_mode"] == "EC2":
+        instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
+    elif os.environ["execution_mode"] == "Fargate":
+        instance_id = os.environ["ECS_CONTAINER_METADATA_URI_V4"].split("http://169.254.170.2/v4/")[1]
     else:
         instance_id = os.environ["HOSTNAME"]
 

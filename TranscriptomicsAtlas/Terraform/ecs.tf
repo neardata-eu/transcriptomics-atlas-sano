@@ -12,6 +12,9 @@ resource "aws_ecs_task_definition" "NearData_task_definition" {
     {
       essential : true,
       image : "542811361644.dkr.ecr.us-east-1.amazonaws.com/neardata_registry:salmon_pipeline",
+      environment : [
+        { "name" : "execution_mode", "value" : "Fargate" }
+      ]
       name : "SalmonPipeline_container",
       logConfiguration : {
         "logDriver" : "awslogs",
@@ -57,6 +60,7 @@ resource "aws_ecs_service" "SalmonPipeline_service" {
   deployment_minimum_healthy_percent = "0"
   deployment_maximum_percent         = "100"
   enable_ecs_managed_tags            = "true"
+  enable_execute_command             = true
 
   network_configuration {
     subnets          = values(aws_subnet.NearData_Subnets)[*].id
