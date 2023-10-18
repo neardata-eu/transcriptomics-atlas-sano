@@ -1,0 +1,65 @@
+FROM ubuntu:22.04
+ENV RUN_IN_CONTAINER="True"
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /opt/TAtlas
+
+### PYTHON MODULES and utils
+RUN apt-get update && \
+    apt-get install wget ca-certificates python3-pip -y --no-install-recommends && \
+    pip3 install boto3 watchtower requests backoff --no-cache-dir
+
+### SRA-TOOLKIT
+RUN wget https://ftp-trace.ncbi.nlm.nih.gov/sra/sdk/3.0.1/sratoolkit.3.0.1-ubuntu64.tar.gz -qO - \
+        | tar -zx -C /opt/TAtlas/ && \
+    echo 'export PATH="$PATH":/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin' >> ~/.bashrc
+
+### SALMON
+RUN wget https://github.com/COMBINE-lab/salmon/releases/download/v1.10.0/salmon-1.10.0_linux_x86_64.tar.gz -qO -  \
+        | tar -zx -C /opt/TAtlas/ && \
+    echo 'export PATH="$PATH":/opt/TAtlas/salmon-latest_linux_x86_64/bin' >> ~/.bashrc
+
+### R
+RUN echo "LC_ALL=C.UTF-8 R" >> /etc/environment
+RUN apt-get install r-base-dev -y --no-install-recommends
+
+### R packages
+# 'DESeq2', 'RCurl', 'RcppArmadillo' (libraries required by DESeq2) require
+RUN apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev libopenblas-dev libopenblas-dev -y
+RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'
+RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
+
+### CWAGENT
+RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
+    dpkg -i -E amazon-cloudwatch-agent.deb && \
+    rm amazon-cloudwatch-agent.deb
+COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
+ENV AWS_DEFAULT_REGION="us-east-1"
+
+RUN pip3 install moto[sqs,s3,dynamodb]
+
+# Config for sratoolkit untill I find a way to configure it using cli/bash
+COPY data/.ncbi /root/.ncbi
+# Copy tx2gene
+COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv
+# COPY scripts
+COPY src/scripts/count_normalization.R /opt/TAtlas/DESeq2/count_normalization.R
+COPY src/Consumer /opt/TAtlas/Consumer
+COPY src/Tests/test_pipeline.py /opt/TAtlas/Consumer
+COPY container_start.py /opt/TAtlas/container_start.py
+
+ENV queue_name="NearData_queue"
+ENV s3_bucket_name="neardata-salmon-ec2-results"
+ENV s3_bucket_name_low_mr="neardata-salmon-ec2-results-low-mr"
+ENV dynamodb_metadata_table="neardata-test-table"
+ENV execution_mode="Container"
+ENV start_cwagent="False"
+
+RUN mkdir /root/.aws
+RUN echo "[default]\n \
+aws_access_key_id = test\n \
+aws_secret_access_key = test" >> /root/.aws/credentials
+
+RUN sed -i '10s/^/# /' /opt/TAtlas/Consumer/logger.py  # comment out line with watchtower logging to disable it
+RUN sed -i '27s~.*~        ["prefetch", srr_id, "--max-size", "30g"],~' /opt/TAtlas/Consumer/consumer.py  # disable small file processing check to use small file as test input
+
+ENTRYPOINT ["python3", "/opt/TAtlas/Consumer/test_pipeline.py"]
