@@ -1,91 +1,17 @@
 import os
-import re
 import json
-import subprocess
 from decimal import Decimal
 from datetime import datetime
 
 import boto3
-import backoff
 
+from config import nproc
+from pipeline_steps import prefetch, fasterq_dump, salmon, deseq2
 from aws_utils import get_instance_id, srr_id_in_metadata_table
-from logger import logger, log_output
-from utils import clean_dir, nested_dict, PipelineError
+from logger import logger
+from utils import clean_dir, nested_dict
 
-my_env = {**os.environ, 'PATH': '/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin:'
-                                '/opt/TAtlas/salmon-latest_linux_x86_64/bin:' + os.environ['PATH']}
-work_dir = "/home/ubuntu/TAtlas"
-
-nproc = subprocess.run(["nproc"], capture_output=True, text=True).stdout.strip()
 logger.info(f"Nproc={nproc}")
-
-
-@backoff.on_exception(backoff.constant, PipelineError, max_tries=2, logger=logger)
-@log_output
-def prefetch(srr_id):
-    prefetch_result = subprocess.run(
-        ["prefetch", srr_id, "--min-size", "200m", "--max-size", "30g"],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-
-    if "is smaller than minimum allowed: skipped" in prefetch_result.stderr or \
-       "is larger than maximum allowed: skipped" in prefetch_result.stderr:
-        raise PipelineError(prefetch_result.stderr)
-    return prefetch_result
-
-
-@backoff.on_exception(backoff.constant, PipelineError, max_tries=2, logger=logger)
-@log_output
-def fasterq_dump(srr_id, fastq_dir):
-    fasterq_result = subprocess.run(
-        ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-    return fasterq_result
-
-
-@log_output
-def salmon(srr_id, fastq_dir, metadata):
-    index_path = "/opt/TAtlas/salmon_index/"
-    quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
-    os.makedirs(quant_dir, exist_ok=True)
-
-    if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
-        salmon_result = subprocess.run(
-            ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-             "-r", f"{fastq_dir}/{srr_id}.fastq", "-o", quant_dir],
-            capture_output=True, text=True, env=my_env, cwd=work_dir
-        )
-    else:
-        salmon_result = subprocess.run(
-            ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-             "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
-            capture_output=True, text=True, env=my_env, cwd=work_dir
-        )
-
-    salmon_output = salmon_result.stderr
-    if "Found no concordant and consistent mappings." in salmon_output:
-        raise PipelineError(f"Found no concordant and consistent mappings for {srr_id}. Aborting the pipeline.")
-
-    pattern = r'Mapping rate = (.*)%'
-    match = re.search(pattern, salmon_output)
-    if match:
-        mapping_rate = float(match.group(1))
-    else:
-        raise PipelineError("Mapping rate not found. Aborting the pipeline.")
-
-    metadata["salmon_mapping_rate [%]"] = mapping_rate
-
-    return salmon_result
-
-
-@log_output
-def deseq2(srr_id):
-    deseq2_result = subprocess.run(
-        ["Rscript", "/opt/TAtlas/DESeq2/count_normalization.R", srr_id],
-        capture_output=True, text=True, env=my_env, cwd=work_dir
-    )
-    return deseq2_result
 
 
 class SalmonPipeline:
