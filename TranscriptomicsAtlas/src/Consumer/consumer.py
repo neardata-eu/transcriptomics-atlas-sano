@@ -5,7 +5,7 @@ from datetime import datetime
 
 import boto3
 
-from config import nproc
+from config import nproc, metadata_dir, sra_dir, fastq_dir, salmon_dir, deseq2_dir
 from pipeline_steps import prefetch, fasterq_dump, salmon, deseq2
 from aws_utils import get_instance_id, srr_id_in_metadata_table
 from logger import logger
@@ -15,12 +15,11 @@ logger.info(f"Nproc={nproc}")
 
 
 class SalmonPipeline:
-    srr_id: str
-    tissue_name: str
-    fastq_dir: str
-    metadata_dir: str = "/home/ubuntu/TAtlas/metadata"
     metadata = nested_dict()
+    tissue_name: str
+    srr_id: str
 
+    # AWS
     s3 = boto3.resource('s3')
     metadata_table = boto3.resource('dynamodb').Table(os.environ["dynamodb_metadata_table"])
     s3_bucket_name = os.environ["s3_bucket_name"]
@@ -28,9 +27,6 @@ class SalmonPipeline:
 
     def __init__(self, message):
         self.tissue_name, self.srr_id = message.split("-")
-        self.fastq_dir = f"/home/ubuntu/TAtlas/fastq/{self.srr_id}"
-        os.makedirs(self.metadata_dir, exist_ok=True)
-        os.makedirs(self.fastq_dir, exist_ok=True)
 
     def start(self):
         if self.check_if_file_already_processed():
@@ -41,11 +37,11 @@ class SalmonPipeline:
         )
 
         self.make_timestamps(
-            fasterq_dump, self.srr_id, self.fastq_dir
+            fasterq_dump, self.srr_id
         )
 
         self.make_timestamps(
-            salmon, self.srr_id, self.fastq_dir, self.metadata
+            salmon, self.srr_id, self.metadata
         )
 
         self.make_timestamps(
@@ -73,19 +69,19 @@ class SalmonPipeline:
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
         bucket = self.s3_bucket_name if self.metadata["salmon_mapping_rate [%]"] >= 30 else self.s3_bucket_name_low_mr
-        self.s3.meta.client.upload_file(f'/home/ubuntu/TAtlas/R_output/{self.srr_id}_normalized_counts.txt',
-                                        bucket, f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
+        self.s3.meta.client.upload_file(f'{deseq2_dir}/{self.srr_id}_normalized_counts.txt', bucket,
+                                        f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
         self.metadata["bucket"] = bucket
         logger.info("S3 upload finished")
 
     def gather_metadata(self):
         logger.info("Measuring file sizes")
-        srr_filesize = os.stat(f"/home/ubuntu/TAtlas/sratoolkit/sra/{self.srr_id}.sra").st_size
-        if os.path.exists(f"{self.fastq_dir}/{self.srr_id}.fastq"):
-            fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}.fastq").st_size
+        srr_filesize = os.stat(f"{sra_dir}/{self.srr_id}.sra").st_size
+        if os.path.exists(f"{fastq_dir}/{self.srr_id}.fastq"):
+            fastq_filesize = os.stat(f"{fastq_dir}/{self.srr_id}.fastq").st_size
         else:
-            fastq_filesize = os.stat(f"{self.fastq_dir}/{self.srr_id}_1.fastq").st_size + \
-                             os.stat(f"{self.fastq_dir}/{self.srr_id}_2.fastq").st_size
+            fastq_filesize = os.stat(f"{fastq_dir}/{self.srr_id}_1.fastq").st_size + \
+                             os.stat(f"{fastq_dir}/{self.srr_id}_2.fastq").st_size
 
         self.metadata["SRR_id"] = self.srr_id
         self.metadata["tissue_name"] = self.tissue_name
@@ -95,7 +91,7 @@ class SalmonPipeline:
         self.metadata["execution_mode"] = os.environ["execution_mode"]
 
         logger.info("Saving metadata")
-        with open(f'{self.metadata_dir}/{self.srr_id}_metadata.json', "w+") as f:
+        with open(f'{metadata_dir}/{self.srr_id}_metadata.json', "w+") as f:
             json.dump(self.metadata, f, indent=4)
 
     def upload_metadata(self):
@@ -106,10 +102,8 @@ class SalmonPipeline:
 
     def clean(self):
         logger.info("Starting removing generated files")
-        clean_dir("/home/ubuntu/TAtlas/sratoolkit")
-        clean_dir("/home/ubuntu/TAtlas/fastq")
-        clean_dir("/home/ubuntu/TAtlas/salmon")
-        clean_dir("/home/ubuntu/TAtlas/R_output")
+        for directory in [sra_dir, fastq_dir, salmon_dir, deseq2_dir]:
+            clean_dir(directory)
         logger.info("Finished removing generated files")
 
 

@@ -4,7 +4,7 @@ import subprocess
 
 import backoff
 
-from config import my_env, work_dir, nproc
+from config import my_env, work_dir, nproc, fastq_dir
 from logger import log_output, logger
 from utils import PipelineError
 
@@ -25,7 +25,7 @@ def prefetch(srr_id):
 
 @backoff.on_exception(backoff.constant, PipelineError, max_tries=2, logger=logger)
 @log_output
-def fasterq_dump(srr_id, fastq_dir):
+def fasterq_dump(srr_id):
     fasterq_result = subprocess.run(
         ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
         capture_output=True, text=True, env=my_env, cwd=work_dir
@@ -34,7 +34,7 @@ def fasterq_dump(srr_id, fastq_dir):
 
 
 @log_output
-def salmon(srr_id, fastq_dir, metadata):
+def salmon(srr_id, metadata):
     index_path = "/opt/TAtlas/salmon_index/"
     quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
