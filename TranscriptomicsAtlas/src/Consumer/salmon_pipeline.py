@@ -47,8 +47,6 @@ class SalmonPipeline:
         )
 
         self.upload_normalized_counts_to_s3()
-        self.gather_metadata()
-        self.upload_metadata()
 
     def check_if_file_already_processed(self):
         logger.info("Checking if the pipeline has already been run.")
@@ -74,12 +72,22 @@ class SalmonPipeline:
 
     def gather_metadata(self):
         logger.info("Measuring file sizes")
-        srr_filesize = os.stat(f"{sra_dir}/{self.srr_id}.sra").st_size
-        if os.path.exists(f"{fastq_dir}/{self.srr_id}.fastq"):
-            fastq_filesize = os.stat(f"{fastq_dir}/{self.srr_id}.fastq").st_size
-        else:
-            fastq_filesize = os.stat(f"{fastq_dir}/{self.srr_id}_1.fastq").st_size + \
-                             os.stat(f"{fastq_dir}/{self.srr_id}_2.fastq").st_size
+        srr_filesize = "N/A"
+        fastq_filesize = "N/A"
+
+        srr_filepath = f"{sra_dir}/{self.srr_id}.sra"
+        if os.path.exists(srr_filepath):
+            srr_filesize = os.stat(srr_filepath).st_size
+
+        fastq_filepath_single = f"{fastq_dir}/{self.srr_id}.fastq"
+        fastq_filepath_double_1 = f"{fastq_dir}/{self.srr_id}_1.fastq"
+        fastq_filepath_double_2 = f"{fastq_dir}/{self.srr_id}_2.fastq"
+
+        # Handle two possible outcomes: either one fastq is generated or two.
+        if os.path.exists(fastq_filepath_single):
+            fastq_filesize = os.stat(fastq_filepath_single).st_size
+        elif os.path.exists(fastq_filepath_double_1) and os.path.exists(fastq_filepath_double_2):
+            fastq_filesize = os.stat(fastq_filepath_double_1).st_size + os.stat(fastq_filepath_double_2).st_size
 
         self.metadata["SRR_id"] = self.srr_id
         self.metadata["tissue_name"] = self.tissue_name
