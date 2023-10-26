@@ -5,9 +5,11 @@ nested_dict = lambda: defaultdict(nested_dict)  # NOQA
 
 
 class PipelineError(Exception):
-    def __init__(self, message):
+    def __init__(self, message, error_type):
         self.message = message
+        self.error_type = error_type
         super().__init__(self.message)
+
 
 
 def clean_dir(path):

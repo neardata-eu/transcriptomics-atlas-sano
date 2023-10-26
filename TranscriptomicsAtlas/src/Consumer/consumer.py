@@ -5,6 +5,7 @@ import boto3
 from config import nproc
 from logger import logger
 from salmon_pipeline import SalmonPipeline
+from utils import PipelineError
 
 logger.info(f"Nproc={nproc}")
 
@@ -12,11 +13,12 @@ logger.info(f"Nproc={nproc}")
 def process_messages(messages):
     for message in messages:
         logger.info(f"Received msg={message.body}")
+        pipeline = SalmonPipeline(message.body)
         try:
-            pipeline = SalmonPipeline(message.body)
             pipeline.start()
-        except Exception as e:
+        except PipelineError as e:
             logger.warning(e)
+            pipeline.metadata["error_type"] = e.error_type
         finally:
             pipeline.clean()
         message.delete()
