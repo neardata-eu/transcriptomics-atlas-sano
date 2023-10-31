@@ -1,33 +1,26 @@
 import os
 import json
-from decimal import Decimal
-from datetime import datetime
 
 import boto3
 
-from aws_utils import srr_id_in_metadata_table, get_instance_id
-from config import deseq2_dir, sra_dir, fastq_dir, metadata_dir, salmon_dir
+from config import sra_dir, fastq_dir, salmon_dir, deseq2_dir
 from logger import logger
+from pipeline import Pipeline
 from pipeline_steps import prefetch, fasterq_dump, salmon, deseq2
-from utils import nested_dict, clean_dir
+from utils import clean_dir
 
 
-class SalmonPipeline:
-    metadata = nested_dict()
-    tissue_name: str
-    srr_id: str
-
+class SalmonPipeline(Pipeline):
     # AWS
     s3 = boto3.resource('s3')
-    metadata_table = boto3.resource('dynamodb').Table(os.environ["dynamodb_metadata_table"])
     s3_bucket_name = os.environ["s3_bucket_name"]
     s3_bucket_name_low_mr = os.environ["s3_bucket_name_low_mr"]
 
     def __init__(self, message):
-        self.tissue_name, self.srr_id = message.split("-")
+        super().__init__(message)
 
     def start(self):
-        if self.check_if_file_already_processed():
+        if self.check_if_file_already_processed(self.srr_id):
             return
 
         self.make_timestamps(
@@ -48,20 +41,6 @@ class SalmonPipeline:
 
         self.upload_normalized_counts_to_s3()
 
-    def check_if_file_already_processed(self):
-        logger.info("Checking if the pipeline has already been run.")
-        if not srr_id_in_metadata_table(self.metadata_table, self.srr_id):
-            logger.info("SRR_id not found in metadata table, starting the pipeline")
-            return False
-        else:
-            logger.info("SRR_id found in metadata table, skipping.")
-            return True
-
-    def make_timestamps(self, pipeline_func, *args, **kwargs):
-        self.metadata[pipeline_func.__name__ + "_start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-        pipeline_func(*args, **kwargs)
-        self.metadata[pipeline_func.__name__ + "_end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
         bucket = self.s3_bucket_name if self.metadata["salmon_mapping_rate [%]"] >= 30 else self.s3_bucket_name_low_mr
@@ -69,42 +48,6 @@ class SalmonPipeline:
                                         f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
         self.metadata["bucket"] = bucket
         logger.info("S3 upload finished")
-
-    def gather_metadata(self):
-        logger.info("Measuring file sizes")
-        srr_filesize = "N/A"
-        fastq_filesize = "N/A"
-
-        srr_filepath = f"{sra_dir}/{self.srr_id}.sra"
-        if os.path.exists(srr_filepath):
-            srr_filesize = os.stat(srr_filepath).st_size
-
-        fastq_filepath_single = f"{fastq_dir}/{self.srr_id}.fastq"
-        fastq_filepath_double_1 = f"{fastq_dir}/{self.srr_id}_1.fastq"
-        fastq_filepath_double_2 = f"{fastq_dir}/{self.srr_id}_2.fastq"
-
-        # Handle two possible outcomes: either one fastq is generated or two.
-        if os.path.exists(fastq_filepath_single):
-            fastq_filesize = os.stat(fastq_filepath_single).st_size
-        elif os.path.exists(fastq_filepath_double_1) and os.path.exists(fastq_filepath_double_2):
-            fastq_filesize = os.stat(fastq_filepath_double_1).st_size + os.stat(fastq_filepath_double_2).st_size
-
-        self.metadata["SRR_id"] = self.srr_id
-        self.metadata["tissue_name"] = self.tissue_name
-        self.metadata["instance_id"] = get_instance_id()
-        self.metadata["SRR_filesize_bytes"] = srr_filesize
-        self.metadata["fastq_filesize_bytes"] = fastq_filesize
-        self.metadata["execution_mode"] = os.environ["execution_mode"]
-
-        logger.info("Saving metadata")
-        with open(f'{metadata_dir}/{self.srr_id}_metadata.json', "w+") as f:
-            json.dump(self.metadata, f, indent=4)
-
-    def upload_metadata(self):
-        logger.info("DynamoDB upload metadata starting")
-        item = json.loads(json.dumps(self.metadata), parse_float=Decimal)
-        self.metadata_table.put_item(Item=item)
-        logger.info("DynamoDB upload metadata finished")
 
     def clean(self):
         logger.info("Starting removing generated files")
