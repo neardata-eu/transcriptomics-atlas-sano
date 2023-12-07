@@ -32,9 +32,9 @@ class Pipeline:
         self.metadata_table.put_item(Item=item)
         logger.info("Metadata upload finished")
 
-    def check_if_file_already_processed(self, srr_id):
+    def check_if_file_already_processed(self):
         logger.info("Checking if the pipeline has already been run.")
-        if not srr_id_in_metadata_table(self.metadata_table, srr_id):
+        if not srr_id_in_metadata_table(self.metadata_table, self.srr_id):
             logger.info("SRR_id not found in metadata table, starting the pipeline")
             return False
         else:

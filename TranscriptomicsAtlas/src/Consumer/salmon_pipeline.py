@@ -1,5 +1,4 @@
 import os
-import json
 
 import boto3
 
@@ -20,9 +19,6 @@ class SalmonPipeline(Pipeline):
         super().__init__(message)
 
     def start(self):
-        if self.check_if_file_already_processed(self.srr_id):
-            return
-
         self.make_timestamps(
             prefetch, self.srr_id
         )

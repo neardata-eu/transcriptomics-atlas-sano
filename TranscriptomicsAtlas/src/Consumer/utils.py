@@ -11,7 +11,6 @@ class PipelineError(Exception):
         super().__init__(self.message)
 
 
-
 def clean_dir(path):
     for root, dirs, files in os.walk(path, topdown=False):
         for file_name in files:
