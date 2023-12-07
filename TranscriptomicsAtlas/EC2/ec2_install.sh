@@ -44,4 +44,4 @@ sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-c
 sudo rm amazon-cloudwatch-agent.deb
 
 ### Source Codes
-aws s3 sync s3://neardata-bucket-1234/source/ /opt/TAtlas
+aws s3 sync s3://neardata-src/source/Consumer/ /opt/TAtlas
