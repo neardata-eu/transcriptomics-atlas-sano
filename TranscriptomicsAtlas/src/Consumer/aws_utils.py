@@ -19,8 +19,10 @@ def get_instance_id():
         instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
     elif os.environ["execution_mode"] == "Fargate":
         instance_id = os.environ["ECS_CONTAINER_METADATA_URI_V4"].split("http://169.254.170.2/v4/")[1]
+    elif os.environ["execution_mode"] == "HPC_container":
+        instance_id = os.environ["HOSTNAME"]+"/"+os.environ.get("SLURM_JOB_ID", "")
     else:
-        instance_id = os.environ["HOSTNAME"]
+        instance_id = "N/A"
 
     return instance_id
 
