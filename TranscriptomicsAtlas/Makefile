@@ -5,10 +5,10 @@ aws: auth_aws build_aws push_aws
 
 ### DOCKER ###
 build_docker:
-	docker build -t piotrkica/salmonpipeline:backoff -f Dockerfile_salmon .
+	docker build -t piotrkica/salmonpipeline:latest -f Dockerfile_salmon .
 
 push_docker:
-	docker push piotrkica/salmonpipeline:backoff
+	docker push piotrkica/salmonpipeline:latest
 
 ### AWS ###
 auth_aws:
@@ -31,4 +31,4 @@ sync-deseq2:
 ### TEST CONTAINER ###
 test:
 	docker build -t salmon_test -f Dockerfile_test .
-	docker run --mount type=bind,src="%cd%\\data\\index",dst="/opt/TAtlas/salmon_index" salmon_test
+	docker run --mount type=bind,src="%cd%\\data\\salmon_index",dst="/opt/TAtlas/salmon_index" salmon_test
