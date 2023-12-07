@@ -1,4 +1,5 @@
 import os
+import time
 
 import boto3
 
@@ -38,10 +39,23 @@ def start_pipeline(mode="job"):
         if mode == "job":
             messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
             process_messages(messages)
+
         elif mode == "server":
-            while True:
+            tries = 0
+            max_tries = 15
+            retry_interval = 5
+
+            while tries < max_tries:
                 messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
-                process_messages(messages)
+                if len(messages) != 0:
+                    process_messages(messages)
+                    tries = 0
+                else:
+                    time.sleep(retry_interval)
+                    tries += 1
+
+            print("No more messages to consume. Exiting")
+
     except Exception as e:
         logger.warning(e)
 
