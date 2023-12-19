@@ -1,0 +1,9 @@
+mkdocs-material
+mkdocs-bibtex
+chardet
+pandas
+matplotlib
+numpy
+seaborn
+boto3
+tqdm
