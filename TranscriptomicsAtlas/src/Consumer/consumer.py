@@ -27,10 +27,10 @@ def process_messages(messages):
         except PipelineError as e:
             logger.warning(e)
             pipeline.metadata["error_type"] = e.error_type
-        finally:
-            pipeline.gather_metadata()
-            pipeline.upload_metadata()
-            pipeline.clean()
+
+        pipeline.gather_metadata()
+        pipeline.upload_metadata()
+        pipeline.clean()
 
         message.delete()
         logger.info("Processed and deleted msg. Awaiting next one")
