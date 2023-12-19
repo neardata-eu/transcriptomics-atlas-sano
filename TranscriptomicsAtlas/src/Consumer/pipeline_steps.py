@@ -42,18 +42,15 @@ def salmon(srr_id, metadata):
     quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
     os.makedirs(quant_dir, exist_ok=True)
 
+    salmon_cmd = ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A", "-o", quant_dir]
+
     if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
-        salmon_result = subprocess.run(
-            ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-             "-r", f"{fastq_dir}/{srr_id}.fastq", "-o", quant_dir],
-            capture_output=True, text=True, env=my_env, cwd=work_dir
-        )
+        salmon_cmd.extend(["-r", f"{fastq_dir}/{srr_id}.fastq"])
     else:
-        salmon_result = subprocess.run(
-            ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A",
-             "-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq", "-o", quant_dir],
-            capture_output=True, text=True, env=my_env, cwd=work_dir
-        )
+        salmon_cmd.extend(["-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq"])
+
+    salmon_result = subprocess.run(salmon_cmd,
+                                   capture_output=True, text=True, env=my_env, cwd=work_dir)
 
     salmon_output = salmon_result.stderr
     if "Found no concordant and consistent mappings." in salmon_output:
