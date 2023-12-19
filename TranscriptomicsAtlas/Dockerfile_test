@@ -35,7 +35,7 @@ RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/
 COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
 ENV AWS_DEFAULT_REGION="us-east-1"
 
-RUN pip3 install moto[sqs,s3,dynamodb]
+RUN pip3 install moto[sqs,s3,dynamodb] pytest --no-cache-dir
 
 # Config for sratoolkit untill I find a way to configure it using cli/bash
 COPY data/.ncbi /root/.ncbi
