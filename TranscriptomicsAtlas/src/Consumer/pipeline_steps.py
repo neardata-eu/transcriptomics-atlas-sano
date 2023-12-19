@@ -73,9 +73,9 @@ def salmon(srr_id, metadata):
 
 
 @log_output
-def deseq2(srr_id):
+def deseq2_salmon(srr_id):
     deseq2_result = subprocess.run(
-        ["Rscript", "/opt/TAtlas/DESeq2/count_normalization.R", srr_id],
+        ["Rscript", "/opt/TAtlas/DESeq2/Salmon_count_normalization.R", srr_id],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
 

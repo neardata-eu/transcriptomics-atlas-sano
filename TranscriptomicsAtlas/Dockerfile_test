@@ -42,7 +42,7 @@ COPY data/.ncbi /root/.ncbi
 # Copy tx2gene
 COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv
 # COPY scripts
-COPY src/scripts/count_normalization.R /opt/TAtlas/DESeq2/count_normalization.R
+COPY src/scripts/Salmon_count_normalization.R /opt/TAtlas/DESeq2/Salmon_count_normalization.R
 COPY src/Consumer /opt/TAtlas/Consumer
 COPY src/Tests/test_pipeline.py /opt/TAtlas/Consumer
 COPY container_start.py /opt/TAtlas/container_start.py

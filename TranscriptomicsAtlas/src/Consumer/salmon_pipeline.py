@@ -5,7 +5,7 @@ import boto3
 from config import sra_dir, fastq_dir, salmon_dir, deseq2_dir
 from logger import logger
 from pipeline import Pipeline
-from pipeline_steps import prefetch, fasterq_dump, salmon, deseq2
+from pipeline_steps import prefetch, fasterq_dump, salmon, deseq2_salmon
 from utils import clean_dir
 
 
@@ -32,7 +32,7 @@ class SalmonPipeline(Pipeline):
         )
 
         self.make_timestamps(
-            deseq2, self.srr_id
+            deseq2_salmon, self.srr_id
         )
 
         self.upload_normalized_counts_to_s3()
