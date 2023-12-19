@@ -12,7 +12,7 @@ from utils import nested_dict, PipelineError
 
 
 class Pipeline:
-    metadata = nested_dict()
+    metadata: nested_dict
     tissue_name: str
     srr_id: str
 
@@ -20,6 +20,7 @@ class Pipeline:
 
     def __init__(self, message):
         self.tissue_name, self.srr_id = message.split("-")
+        self.metadata = nested_dict()
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
         self.metadata[pipeline_func.__name__ + "_start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
