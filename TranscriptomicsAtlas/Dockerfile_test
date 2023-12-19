@@ -59,7 +59,7 @@ RUN echo "[default]\n \
 aws_access_key_id = test\n \
 aws_secret_access_key = test" >> /root/.aws/credentials
 
-RUN sed -i '10s/^/# /' /opt/TAtlas/Consumer/logger.py  # comment out line with watchtower logging to disable it
-RUN sed -i '27s~.*~        ["prefetch", srr_id, "--max-size", "30g"],~' /opt/TAtlas/Consumer/consumer.py  # disable small file processing check to use small file as test input
+RUN sed -i '11,12s/^/# /' /opt/TAtlas/Consumer/logger.py  # comment out lines with watchtower logging to disable it
+RUN sed -i '16s~.*~        ["prefetch", srr_id, "--max-size", "30g"],~' /opt/TAtlas/Consumer/pipeline_steps.py  # disable small file processing check to use small file as test input
 
 ENTRYPOINT ["python3", "/opt/TAtlas/Consumer/test_pipeline.py"]
