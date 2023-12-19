@@ -2,6 +2,10 @@ import os
 import time
 
 import boto3
+import requests
+
+if os.environ["execution_mode"] == "EC2":
+    os.environ['AWS_DEFAULT_REGION'] = requests.get('http://169.254.169.254/latest/meta-data/placement/region').text
 
 from config import nproc
 from logger import logger
