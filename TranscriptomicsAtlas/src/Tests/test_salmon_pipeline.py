@@ -20,18 +20,18 @@ class TestUtils(unittest.TestCase):
     def setUp(self):
         ## CREATE BUCKETS
         s3 = boto3.resource("s3", region_name="us-east-1")
-        self.salmon_bucket = s3.create_bucket(Bucket="neardata-salmon-ec2-results")
-        self.salmon_low_mr_bucket = s3.create_bucket(Bucket="neardata-salmon-ec2-results-low-mr")
+        self.salmon_bucket = s3.create_bucket(Bucket=os.environ["s3_bucket_name"])
+        self.salmon_low_mr_bucket = s3.create_bucket(Bucket=os.environ["s3_bucket_name_low_mr"])
 
         ## CREATE SQS QUEUE
-        queue_name = "NearData_queue"
+        queue_name = os.environ["queue_name"]
         sqs = boto3.resource("sqs", region_name="us-east-1")
         sqs.create_queue(QueueName=queue_name)
         self.queue = sqs.get_queue_by_name(QueueName=queue_name)
 
         ## CREATE DYNAMODB TABLE
         dynamodb_resource = boto3.resource('dynamodb', region_name="us-east-1")
-        table_name = "neardata-test-table"
+        table_name = os.environ["dynamodb_metadata_table"]
         self.table = dynamodb_resource.create_table(
             TableName=table_name,
             KeySchema=[
