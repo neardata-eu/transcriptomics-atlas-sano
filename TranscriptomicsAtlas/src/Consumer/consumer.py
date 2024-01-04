@@ -20,6 +20,7 @@ def process_messages(messages):
         logger.info(f"Received msg={message.body}")
         pipeline = SalmonPipeline(message.body)
         if pipeline.check_if_file_already_processed():
+            message.delete()
             continue
 
         try:
@@ -27,6 +28,9 @@ def process_messages(messages):
         except PipelineError as e:
             logger.warning(e)
             pipeline.metadata["error_type"] = e.error_type
+        except Exception as e:
+            logger.warning(e)
+            exit()
 
         pipeline.gather_metadata()
         pipeline.upload_metadata()
