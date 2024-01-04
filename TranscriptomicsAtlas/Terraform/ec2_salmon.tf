@@ -1,32 +1,9 @@
-resource "aws_security_group" "NearData_sg" {
-  name   = "NearData_SG"
-  vpc_id = aws_vpc.NearData_VPC.id
-
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["195.150.12.215/32", "5.173.49.232/32", "94.254.191.79/32"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "NearData_SG"
-  }
-}
-
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
   image_id      = "ami-03c6be1fd52a83cda"
   instance_type = "m6a.large"
   key_name      = "neardata-pk"
-  user_data     = base64encode(file("init.sh"))
+  user_data     = base64encode(file("init_Salmon.sh"))
   ebs_optimized = true
 
   network_interfaces {
@@ -52,7 +29,7 @@ resource "aws_launch_template" "NearData_lt" {
   block_device_mappings {
     device_name = "/dev/sda1"
     ebs {
-      volume_size = 250
+      volume_size = 300
       volume_type = "gp3"
       iops        = 3000
       throughput  = 250
