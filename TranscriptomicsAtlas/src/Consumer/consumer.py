@@ -10,6 +10,7 @@ if os.environ["execution_mode"] == "EC2":
 from config import nproc
 from logger import logger
 from salmon_pipeline import SalmonPipeline
+from STAR_pipeline import STARPipeline
 from utils import PipelineError
 
 logger.info(f"Nproc={nproc}")
@@ -18,7 +19,13 @@ logger.info(f"Nproc={nproc}")
 def process_messages(messages):
     for message in messages:
         logger.info(f"Received msg={message.body}")
-        pipeline = SalmonPipeline(message.body)
+        if os.environ["pipeline_type"] == "Salmon":
+            pipeline = SalmonPipeline(message.body)
+        elif os.environ["pipeline_type"] == "STAR":
+            pipeline = STARPipeline(message.body)
+        else:
+            raise ValueError("Invalid pipeline type")
+
         if pipeline.check_if_file_already_processed():
             message.delete()
             continue

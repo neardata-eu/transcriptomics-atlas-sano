@@ -4,7 +4,7 @@ import subprocess
 
 import backoff
 
-from config import my_env, work_dir, nproc, fastq_dir
+from config import my_env, work_dir, nproc, fastq_dir, star_index_dir, star_dir
 from logger import log_output, logger
 from utils import PipelineError
 
@@ -67,6 +67,61 @@ def salmon(srr_id, metadata):
     metadata["salmon_mapping_rate [%]"] = mapping_rate
 
     return salmon_result
+
+
+@log_output
+def load_star_index():
+    cmd = ["STAR",
+           "--genomeDir", "/opt/TAtlas/STAR_data/STAR_index_mount/index_hg38_with_gtf",
+           "--genomeLoad", "LoadAndExit",
+           "--outFileNamePrefix", f"{work_dir}/STAR_load_index_log/",
+           ]
+
+    index_load_result = subprocess.run(cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
+
+    return index_load_result
+
+
+@log_output
+def star(srr_id, metadata):
+    star_cmd = ["STAR",
+                "--genomeDir", star_index_dir,
+                "--genomeLoad", "LoadAndKeep",
+                "--runThreadN", nproc,
+                "--outFileNamePrefix", f"{star_dir}/{srr_id}/",
+                "--outSAMtype", "BAM", "SortedByCoordinate",
+                "--outSAMunmapped", "Within",
+                "--quantMode", "GeneCounts",
+                "--limitBAMsortRAM", "16106127360",  # 15GB
+                "--outSAMattributes", "Standard"
+                ]
+
+    if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
+        star_cmd.extend(["--readFilesIn", f"{fastq_dir}/{srr_id}.fastq"])
+    else:
+        star_cmd.extend(["--readFilesIn", f"{fastq_dir}/{srr_id}_1.fastq", f"{fastq_dir}/{srr_id}_2.fastq"])
+
+    star_result = subprocess.run(star_cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
+
+    with open(f"{star_dir}/{srr_id}/Log.final.out") as f:
+        log_final = f.read()
+
+    pattern = r"Uniquely mapped reads % \|(.*)%"
+    match = re.search(pattern, log_final)
+    mapping_rate = float(match.group(1).strip())
+    metadata["STAR_mapping_rate [%]"] = mapping_rate
+
+    return star_result
+
+
+@log_output
+def deseq2_star(srr_id):
+    deseq2_result = subprocess.run(
+        ["Rscript", "/opt/TAtlas/DESeq2/STAR_count_normalization.R", srr_id],
+        capture_output=True, text=True, env=my_env, cwd=work_dir
+    )
+
+    return deseq2_result
 
 
 @log_output
