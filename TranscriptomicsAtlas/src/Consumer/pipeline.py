@@ -12,6 +12,11 @@ from utils import nested_dict, PipelineError
 
 
 class Pipeline:
+    # AWS
+    s3 = boto3.resource('s3')
+    s3_bucket_name = os.environ["s3_bucket_name"]
+    s3_bucket_name_low_mr = os.environ["s3_bucket_name_low_mr"]
+
     metadata: nested_dict
     tissue_name: str
     srr_id: str

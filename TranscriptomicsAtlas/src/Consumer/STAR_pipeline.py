@@ -1,7 +1,3 @@
-import os
-
-import boto3
-
 from config import sra_dir, fastq_dir, star_dir, deseq2_dir
 from logger import logger
 from pipeline import Pipeline
@@ -10,11 +6,6 @@ from utils import clean_dir
 
 
 class STARPipeline(Pipeline):
-    # AWS
-    s3 = boto3.resource('s3')
-    s3_bucket_name = os.environ["s3_bucket_name"]
-    s3_bucket_name_low_mr = os.environ["s3_bucket_name_low_mr"]
-
     load_star_index()
 
     def __init__(self, message):
