@@ -1,27 +1,8 @@
 data "aws_s3_bucket" "NearData_results_bucket_name" {
-  bucket = "neardata-salmon-ec2-results"
-}
-
-data "aws_s3_bucket" "NearData_results_bucket_name_low_mr" {
-  bucket = "neardata-salmon-ec2-results-low-mr"
-}
-
-data "aws_s3_bucket" "NearData_container_results_bucket_name" {
-  bucket = "neardata-salmon-hpc-results"
+  bucket = "transcriptomics-atlas"
 }
 
 data "aws_s3_bucket" "NearData_results_hpc_bucket_name" {
   bucket = "neardata-salmon-hpc-results"
 }
 
-data "aws_s3_bucket" "NearData_results_hpc_low_mr_bucket_name" {
-  bucket = "neardata-salmon-hpc-results-low-mr"
-}
-
-data "aws_s3_bucket" "STAR_results_bucket_name" {
-  bucket = "neardata-star-ec2-results"
-}
-
-data "aws_s3_bucket" "STAR_results_bucket_name_low_mr" {
-  bucket = "neardata-star-ec2-results-low-mr"
-}

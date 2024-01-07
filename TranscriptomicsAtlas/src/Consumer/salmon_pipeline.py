@@ -30,10 +30,18 @@ class SalmonPipeline(Pipeline):
 
     def upload_normalized_counts_to_s3(self):
         logger.info("S3 upload starting")
-        bucket = self.s3_bucket_name if self.metadata["salmon_mapping_rate [%]"] >= 30 else self.s3_bucket_name_low_mr
-        self.s3.meta.client.upload_file(f'{deseq2_dir}/{self.srr_id}_normalized_counts.txt', bucket,
-                                        f"{self.tissue_name}/{self.srr_id}_normalized_counts.txt")
-        self.metadata["bucket"] = bucket
+        mr_folder = "high_mapping_rate" if self.metadata["salmon_mapping_rate [%]"] >= 30 else "low_mapping_rate"
+
+        row_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_row_counts.csv'
+        normalized_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_normalized_counts.txt'
+
+        row_counts_s3_path = f"Salmon/{mr_folder}/row_counts/{self.tissue_name}/{self.srr_id}_salmon_row_counts.csv"
+        normalized_counts_s3_path = f"Salmon/{mr_folder}/normalized_counts/{self.tissue_name}/{self.srr_id}_salmon_normalized_counts.txt"
+
+        self.s3.meta.client.upload_file(row_counts_local_path, self.s3_bucket_name, row_counts_s3_path)
+        self.s3.meta.client.upload_file(normalized_counts_local_path, self.s3_bucket_name, normalized_counts_s3_path)
+
+        self.metadata["s3_path"] = f"s3://{self.s3_bucket_name}/{normalized_counts_s3_path}"
         logger.info("S3 upload finished")
 
     def clean(self):

@@ -44,9 +44,8 @@ COPY src/scripts/Salmon_count_normalization.R /opt/TAtlas/DESeq2/Salmon_count_no
 COPY src/Consumer /opt/TAtlas/Consumer
 COPY container_start.py /opt/TAtlas/container_start.py
 
-ENV queue_name="NearData_queue"
+ENV queue_name="Salmon_queue"
 ENV s3_bucket_name="neardata-salmon-ec2-results"
-ENV s3_bucket_name_low_mr="neardata-salmon-ec2-results-low-mr"
 ENV dynamodb_metadata_table="neardata-test-table"
 ENV execution_mode="Container"
 ENV start_cwagent="False"
