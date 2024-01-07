@@ -1,21 +1,12 @@
 #!/bin/env bash
-## Nazwa zlecenia
 #SBATCH -J salmon_experiment
-## Liczba alokowanych węzłów
 #SBATCH -N 1
-## Liczba zadań per węzeł (domyślnie jest to liczba alokowanych rdzeni na węźle)
 #SBATCH --ntasks=48
-## Ilość pamięci
 #SBATCH --mem=80GB
-## Maksymalny czas trwania zlecenia (format DD-HH:MM:SS)
 #SBATCH --time=08:00:00
-## Nazwa grantu do rozliczenia zużycia zasobów
 #SBATCH -A plgsano4-cpu
-## Specyfikacja partycji
 #SBATCH -p plgrid-now
-## Plik ze standardowym wyjściem
 #SBATCH --output="output/output-%A_%a.out"
-## Plik ze standardowym wyjściem błędów
 #SBATCH --error="output/error-%A_%a.err"
 
 # sbatch salmon_plgnow.sbatch
