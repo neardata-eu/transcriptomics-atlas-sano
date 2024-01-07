@@ -72,7 +72,7 @@ def salmon(srr_id, metadata):
 @log_output
 def load_star_index():
     cmd = ["STAR",
-           "--genomeDir", "/opt/TAtlas/STAR_data/STAR_index_mount/index_hg38_with_gtf",
+           "--genomeDir", star_index_dir,
            "--genomeLoad", "LoadAndExit",
            "--outFileNamePrefix", f"{work_dir}/STAR_load_index_log/",
            ]
