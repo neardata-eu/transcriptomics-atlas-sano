@@ -16,7 +16,7 @@ def get_instance_id():
     elif execution_mode == "Fargate":
         instance_id = os.environ["ECS_CONTAINER_METADATA_URI_V4"].split("http://169.254.170.2/v4/")[1]
     elif execution_mode == "HPC_container":
-        instance_id = os.environ["HOSTNAME"]+"/"+os.environ.get("SLURM_JOB_ID", "")
+        instance_id = os.environ["HOSTNAME"]+"/"+os.environ.get("SLURM_JOB_ID", "")+"/"+os.environ.get("SLURM_ARRAY_TASK_ID", "")
     else:
         instance_id = "N/A"
 
