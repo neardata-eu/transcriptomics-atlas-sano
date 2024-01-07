@@ -26,10 +26,12 @@ class SalmonPipeline(Pipeline):
             deseq2_salmon, self.srr_id
         )
 
-        self.upload_normalized_counts_to_s3()
 
-    def upload_normalized_counts_to_s3(self):
-        logger.info("S3 upload starting")
+        self.upload_logs_to_s3()
+        self.upload_counts_to_s3()
+
+    def upload_counts_to_s3(self):
+        logger.info("S3 upload counts starting")
         mr_folder = "high_mapping_rate" if self.metadata["salmon_mapping_rate [%]"] >= 30 else "low_mapping_rate"
 
         row_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_row_counts.csv'
@@ -42,7 +44,17 @@ class SalmonPipeline(Pipeline):
         self.s3.meta.client.upload_file(normalized_counts_local_path, self.s3_bucket_name, normalized_counts_s3_path)
 
         self.metadata["s3_path"] = f"s3://{self.s3_bucket_name}/{normalized_counts_s3_path}"
-        logger.info("S3 upload finished")
+        logger.info("S3 upload counts finished")
+
+    def upload_logs_to_s3(self):
+        logger.info("S3 upload logs starting")
+        mr_folder = "high_mapping_rate" if self.metadata["salmon_mapping_rate [%]"] >= 30 else "low_mapping_rate"
+
+        final_logs_local_path = f"{salmon_dir}/{self.srr_id}/logs/salmon_quant.log"
+        final_logs_s3_path = f"Salmon/{mr_folder}/logs/{self.tissue_name}/{self.srr_id}_salmon_quant.log"
+        self.s3.meta.client.upload_file(final_logs_local_path, self.s3_bucket_name, final_logs_s3_path)
+
+        logger.info("S3 upload logs finished")
 
     def clean(self):
         logger.info("Starting removing generated files")

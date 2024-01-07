@@ -31,6 +31,7 @@ class STARPipeline(Pipeline):
             deseq2_star, self.srr_id
         )
 
+        self.upload_logs_to_s3()
         self.upload_counts_to_s3()
 
     def upload_counts_to_s3(self):
@@ -45,9 +46,23 @@ class STARPipeline(Pipeline):
 
         self.s3.meta.client.upload_file(row_counts_local_path, self.s3_bucket_name, row_counts_s3_path)
         self.s3.meta.client.upload_file(normalized_counts_local_path, self.s3_bucket_name, normalized_counts_s3_path)
-        
+
         self.metadata["s3_path"] = f"s3://{self.s3_bucket_name}/{normalized_counts_s3_path}"
         logger.info("S3 upload counts finished")
+
+    def upload_logs_to_s3(self):
+        logger.info("S3 upload logs starting")
+        mr_folder = "high_mapping_rate" if self.metadata["STAR_mapping_rate [%]"] >= 30 else "low_mapping_rate"
+
+        progress_logs_local_path = f"{star_dir}/{self.srr_id}/Log.progress.out"
+        final_logs_local_path = f"{star_dir}/{self.srr_id}/Log.final.out"
+
+        progress_logs_s3_path = f"STAR/{mr_folder}/logs/{self.tissue_name}/{self.srr_id}_STAR_log.progress.out"
+        final_logs_s3_path = f"STAR/{mr_folder}/logs/{self.tissue_name}/{self.srr_id}_STAR_log.final.out"
+
+        self.s3.meta.client.upload_file(progress_logs_local_path, self.s3_bucket_name, progress_logs_s3_path)
+        self.s3.meta.client.upload_file(final_logs_local_path, self.s3_bucket_name, final_logs_s3_path)
+        logger.info("S3 upload logs finished")
 
     def clean(self):
         logger.info("Starting removing generated files")
