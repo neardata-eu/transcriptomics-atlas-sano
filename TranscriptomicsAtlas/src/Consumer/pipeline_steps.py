@@ -21,6 +21,8 @@ def prefetch(srr_id):
         raise PipelineError(prefetch_result.stderr, "SRA file too small")
     elif "is larger than maximum allowed: skipped" in prefetch_result.stderr:
         raise PipelineError(prefetch_result.stderr, "SRA file too big")
+    elif "Access denied - please request permission" in prefetch_result.stderr:
+        raise PipelineError(prefetch_result.stderr, "SRA file not public")
 
     return prefetch_result
 
