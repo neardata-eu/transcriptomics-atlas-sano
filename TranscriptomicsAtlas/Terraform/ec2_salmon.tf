@@ -1,7 +1,7 @@
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-03c6be1fd52a83cda"
-  instance_type = "m6a.large"
+  image_id      = "ami-0a12fc7555dd3f1ed"
+  instance_type = "c6a.large"
   key_name      = "neardata-pk"
   user_data     = base64encode(file("init_Salmon.sh"))
   ebs_optimized = true
@@ -29,7 +29,7 @@ resource "aws_launch_template" "NearData_lt" {
   block_device_mappings {
     device_name = "/dev/sda1"
     ebs {
-      volume_size = 300
+      volume_size = 400
       volume_type = "gp3"
       iops        = 3000
       throughput  = 250
@@ -45,8 +45,8 @@ resource "aws_launch_template" "NearData_lt" {
   }
 }
 
-#resource "aws_autoscaling_group" "NearData_asg" {
-#  name                      = "NearData_asg"
+#resource "aws_autoscaling_group" "Salmon_asg" {
+#  name                      = "Salmon_asg"
 #  min_size                  = 1
 #  desired_capacity          = 8
 #  max_size                  = 8
