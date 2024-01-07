@@ -22,11 +22,11 @@ push_aws:
 
 ### SYNC SOURCE CODE ###
 sync-salmon:
-	aws s3 sync src/Consumer s3://neardata-src/source/Consumer
+	aws s3 sync src/Consumer s3://neardata-src/source/Salmon/Consumer
 
 sync-salmon-deseq2:
-	aws s3 cp data/DESeq2/tx2gene.gencode.v42.csv s3://neardata-src/source/DESeq2/tx2gene.gencode.v42.csv
-	aws s3 cp src/scripts/Salmon_count_normalization.R s3://neardata-src/source/DESeq2/Salmon_count_normalization.R
+	aws s3 cp data/DESeq2/tx2gene.gencode.v42.csv s3://neardata-src/source/Salmon/DESeq2/tx2gene.gencode.v42.csv
+	aws s3 cp src/scripts/Salmon_count_normalization.R s3://neardata-src/source/Salmon/DESeq2/Salmon_count_normalization.R
 
 ### SYNC STAR CODE ###
 sync-star:
