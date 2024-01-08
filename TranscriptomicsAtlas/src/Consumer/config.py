@@ -4,6 +4,7 @@ nproc = str(len(os.sched_getaffinity(0)))
 my_env = {**os.environ, 'PATH': '/opt/TAtlas/sratoolkit.3.0.1-ubuntu64/bin:'
                                 '/opt/TAtlas/salmon-latest_linux_x86_64/bin:'
                                 '/opt/TAtlas/STAR-2.7.10b/bin/Linux_x86_64:' + os.environ['PATH']}
+index_release = os.environ.get("index_release", "108")
 work_dir = "/home/ubuntu/TAtlas"
 sra_dir = f"{work_dir}/sratoolkit/sra"
 fastq_dir = f"{work_dir}/fastq"
