@@ -6,7 +6,7 @@ from datetime import datetime
 import boto3
 
 from aws_utils import srr_id_in_metadata_table, get_instance_id
-from config import sra_dir, fastq_dir, metadata_dir
+from config import nproc, sra_dir, fastq_dir, metadata_dir
 from logger import logger
 from utils import nested_dict, PipelineError
 
@@ -51,6 +51,7 @@ class Pipeline:
         self.metadata["SRR_id"] = self.srr_id
         self.metadata["tissue_name"] = self.tissue_name
         self.metadata["instance_id"] = get_instance_id()
+        self.metadata["nproc"] = nproc
         self.metadata["execution_mode"] = os.environ["execution_mode"]
         self.metadata["SRR_filesize_bytes"] = self.measure_sra_size()
         self.metadata["fastq_filesize_bytes"] = self.measure_fastq_size()
