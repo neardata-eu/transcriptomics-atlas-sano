@@ -37,8 +37,8 @@ class SalmonPipeline(Pipeline):
         row_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_row_counts.csv'
         normalized_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_normalized_counts.txt'
 
-        row_counts_s3_path = f"Salmon/{mr_folder}/row_counts/{self.tissue_name}/{self.srr_id}_salmon_row_counts.csv"
-        normalized_counts_s3_path = f"Salmon/{mr_folder}/normalized_counts/{self.tissue_name}/{self.srr_id}_salmon_normalized_counts.txt"
+        row_counts_s3_path = f"Salmon/{mr_folder}/{self.tissue_name}/row_counts/{self.srr_id}_salmon_row_counts.csv"
+        normalized_counts_s3_path = f"Salmon/{mr_folder}/{self.tissue_name}/normalized_counts/{self.srr_id}_salmon_normalized_counts.txt"
 
         self.s3.meta.client.upload_file(row_counts_local_path, self.s3_bucket_name, row_counts_s3_path)
         self.s3.meta.client.upload_file(normalized_counts_local_path, self.s3_bucket_name, normalized_counts_s3_path)
@@ -51,7 +51,7 @@ class SalmonPipeline(Pipeline):
         mr_folder = "high_mapping_rate" if self.metadata["salmon_mapping_rate [%]"] >= 30 else "low_mapping_rate"
 
         final_logs_local_path = f"{salmon_dir}/{self.srr_id}/logs/salmon_quant.log"
-        final_logs_s3_path = f"Salmon/{mr_folder}/logs/{self.tissue_name}/{self.srr_id}_salmon_quant.log"
+        final_logs_s3_path = f"Salmon/{mr_folder}/{self.tissue_name}/logs/{self.srr_id}_salmon_quant.log"
         self.s3.meta.client.upload_file(final_logs_local_path, self.s3_bucket_name, final_logs_s3_path)
 
         logger.info("S3 upload logs finished")
