@@ -49,13 +49,17 @@ def process_messages(messages):
 
 def start_pipeline(mode="job"):
     try:
+        logger.info(f"Running in {mode} mode")
         queue = boto3.resource("sqs").get_queue_by_name(QueueName=os.environ["queue_name"])
         logger.info("Awaiting messages")
         if mode == "job":
             messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
             process_messages(messages)
-
-        elif mode == "server":
+        if mode == "ec2":
+            while True:
+                messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
+                process_messages(messages)
+        elif mode == "container":
             tries = 0
             max_tries = 15
             retry_interval = 5
@@ -69,11 +73,11 @@ def start_pipeline(mode="job"):
                     time.sleep(retry_interval)
                     tries += 1
 
-            print("No more messages to consume. Exiting")
+            logger.info("No more messages to consume. Exiting")
 
     except Exception as e:
         logger.warning(e)
 
 
 if __name__ == "__main__":
-    start_pipeline(mode="server")
+    start_pipeline(mode="ec2")
