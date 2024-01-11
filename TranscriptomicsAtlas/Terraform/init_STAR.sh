@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:ec2_cwagent_config -s
+# rm -rf because sync below is unreliable
+rm -rf /opt/TAtlas/Consumer /opt/TAtlas/DESeq2
 aws s3 sync s3://neardata-src/source/STAR/ /opt/TAtlas
 
 {
