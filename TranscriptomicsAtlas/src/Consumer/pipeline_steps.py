@@ -94,7 +94,7 @@ def star(srr_id, metadata):
                 "--outSAMtype", "BAM", "SortedByCoordinate",
                 "--outSAMunmapped", "Within",
                 "--quantMode", "GeneCounts",
-                "--limitBAMsortRAM", "16106127360",  # 15GB
+                "--limitBAMsortRAM", "30064771072",  # 28GiB
                 "--outSAMattributes", "Standard"
                 ]
 
