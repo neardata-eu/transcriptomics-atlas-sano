@@ -4,7 +4,7 @@ import subprocess
 
 import backoff
 
-from config import my_env, work_dir, nproc, fastq_dir, star_index_dir, star_dir
+from config import my_env, work_dir, nproc, fastq_dir, salmon_dir, salmon_index_dir, star_index_dir, star_dir
 from logger import log_output, logger
 from utils import PipelineError
 
@@ -40,19 +40,20 @@ def fasterq_dump(srr_id):
 
 @log_output
 def salmon(srr_id, metadata):
-    index_path = "/opt/TAtlas/salmon_index/"
-    quant_dir = f"/home/ubuntu/TAtlas/salmon/{srr_id}"
-    os.makedirs(quant_dir, exist_ok=True)
-
-    salmon_cmd = ["salmon", "quant", "--threads", nproc, "--useVBOpt", "-i", index_path, "-l", "A", "-o", quant_dir]
+    salmon_cmd = ["salmon", "quant",
+                  "--threads", nproc,
+                  "-i", salmon_index_dir,
+                  "--output", f"{salmon_dir}/{srr_id}",
+                  "-l", "A",
+                  "--useVBOpt"
+                  ]
 
     if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
         salmon_cmd.extend(["-r", f"{fastq_dir}/{srr_id}.fastq"])
     else:
         salmon_cmd.extend(["-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq"])
 
-    salmon_result = subprocess.run(salmon_cmd,
-                                   capture_output=True, text=True, env=my_env, cwd=work_dir)
+    salmon_result = subprocess.run(salmon_cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
 
     salmon_output = salmon_result.stderr
     if "Found no concordant and consistent mappings." in salmon_output:
