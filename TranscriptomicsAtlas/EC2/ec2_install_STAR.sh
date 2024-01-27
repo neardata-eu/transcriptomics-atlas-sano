@@ -39,6 +39,24 @@ sudo dpkg -i -E ./amazon-cloudwatch-agent.deb
 sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:ec2_cwagent_config -s
 sudo rm amazon-cloudwatch-agent.deb
 
+### GATK https://github.com/broadinstitute/gatk/releases   https://gatk.broadinstitute.org/hc/en-us
+sudo apt install python-is-python3
+wget https://github.com/broadinstitute/gatk/releases/download/4.5.0.0/gatk-4.5.0.0.zip
+unzip gatk-4.5.0.0.zip -d /opt/TAtlas
+rm gatk-4.5.0.0.zip
+echo 'export PATH="$PATH":/opt/TAtlas/gatk-4.5.0.0' >> ~/.bashrc
+
+### SAMTOOLS  http://www.htslib.org/download/
+sudo apt install openjdk-18-jre
+wget https://github.com/samtools/samtools/releases/download/1.19/samtools-1.19.tar.bz2 -O - | tar -jx -C /opt/TAtlas
+mkdir /opt/TAtlas/samtools-1.19-build
+cd /opt/TAtlas/samtools-1.19 || exit
+./configure --prefix /opt/TAtlas/samtools-1.19-build
+make
+make install
+cd
+echo 'export PATH="$PATH":/opt/TAtlas/samtools-1.19-build/bin' >> ~/.bashrc
+
 ### Source Codes
 mkdir /opt/TAtlas/STAR_data/STAR_index_mount -p
 aws s3 sync s3://neardata-src/source/STAR/ /opt/TAtlas/
