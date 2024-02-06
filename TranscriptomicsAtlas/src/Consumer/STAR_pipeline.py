@@ -64,6 +64,12 @@ class STARPipeline(Pipeline):
         self.s3.meta.client.upload_file(final_logs_local_path, self.s3_bucket_name, final_logs_s3_path)
         logger.info("S3 upload logs finished")
 
+    def gather_metadata(self):
+        super().gather_metadata()
+        bam_filepath = f"{star_dir}/{self.srr_id}/Aligned.sortedByCoord.out.bam"
+        if os.path.exists(bam_filepath):
+            self.metadata["bam_filesize_bytes"] = os.stat(bam_filepath).st_size
+
     def clean(self):
         logger.info("Starting removing generated files")
         for directory in [sra_dir, fastq_dir, star_dir, deseq2_dir]:

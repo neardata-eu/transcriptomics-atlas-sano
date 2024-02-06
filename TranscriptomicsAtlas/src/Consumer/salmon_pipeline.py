@@ -1,3 +1,5 @@
+import os
+
 from config import sra_dir, fastq_dir, salmon_dir, deseq2_dir
 from logger import logger
 from pipeline import Pipeline
@@ -25,7 +27,6 @@ class SalmonPipeline(Pipeline):
         self.make_timestamps(
             deseq2_salmon, self.srr_id
         )
-
 
         self.upload_logs_to_s3()
         self.upload_counts_to_s3()
