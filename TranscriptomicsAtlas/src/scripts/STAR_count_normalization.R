@@ -18,7 +18,7 @@ control = "control"
 #import file
 ReadsPerGene_path <- file.path(input_dir, SRX, "ReadsPerGene.out.tab")
 ReadPerGeneOut <- read_table(ReadsPerGene_path, skip = 4)
-ReadPerGeneOut_Ref <- read_table("/opt/TAtlas/STAR_data/STAR_ref/SRR11982817-ref/ReadsPerGene.out.tab", skip = 4)
+ReadPerGeneOut_Ref <- read_table("/opt/TAtlas/DESeq2/SRR11982817_ref_release111/ReadsPerGene.out.tab", skip = 4)
 
 #create data frame
 countData = as.data.frame(ReadPerGeneOut)[, c(1, 4)]
