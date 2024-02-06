@@ -8,7 +8,7 @@ resource "aws_launch_template" "NearData_lt" {
 
   network_interfaces {
     security_groups             = [aws_security_group.NearData_sg.id]
-    associate_public_ip_address = true
+    associate_public_ip_address = false
   }
 
   monitoring {
