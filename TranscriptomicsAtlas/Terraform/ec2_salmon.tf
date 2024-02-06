@@ -1,6 +1,6 @@
 resource "aws_launch_template" "NearData_lt" {
   name          = "NearData_lt"
-  image_id      = "ami-0a12fc7555dd3f1ed"
+  image_id      = "ami-00fff441321484108"
   instance_type = "c6a.large"
   key_name      = "neardata-pk"
   user_data     = base64encode(file("init_Salmon.sh"))
