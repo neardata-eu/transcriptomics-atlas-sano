@@ -54,8 +54,8 @@ resource "aws_dynamodb_table" "NearData_test_db" {
   }
 }
 
-resource "aws_dynamodb_table" "STAR_metadata_db" {
-  name                        = "neardata-tissues-star-metadata"
+resource "aws_dynamodb_table" "TAtlas_db" {
+  name                        = "transcriptomics-atlas-salmon-metadata"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "SRR_id"
   deletion_protection_enabled = true
@@ -65,17 +65,13 @@ resource "aws_dynamodb_table" "STAR_metadata_db" {
     type = "S"
   }
 
-  tags = {
-    Name = "NearData_db"
-  }
-
   lifecycle {
     prevent_destroy = true
   }
 }
 
-resource "aws_dynamodb_table" "TAtlas_db" {
-  name                        = "transcriptomics-atlas-salmon-metadata"
+resource "aws_dynamodb_table" "TAtlas_STAR_db" {
+  name                        = "transcriptomics-atlas-star-metadata"
   billing_mode                = "PAY_PER_REQUEST"
   hash_key                    = "SRR_id"
   deletion_protection_enabled = true
