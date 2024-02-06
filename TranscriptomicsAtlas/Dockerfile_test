@@ -3,7 +3,7 @@ ENV RUN_IN_CONTAINER="True"
 ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt/TAtlas
 
-### PYTHON MODULES and utils
+### PYTHON modules and utils
 RUN apt-get update && \
     apt-get install wget ca-certificates python3-pip -y --no-install-recommends && \
     pip3 install boto3 watchtower requests backoff --no-cache-dir
@@ -25,41 +25,40 @@ RUN apt-get install r-base-dev -y --no-install-recommends
 ### R packages
 # 'DESeq2', 'RCurl', 'RcppArmadillo' (libraries required by DESeq2) require
 RUN apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev libopenblas-dev libopenblas-dev -y
-RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'
+RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite", "data.table"))'
 RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
 
-### CWAGENT
-RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
-    dpkg -i -E amazon-cloudwatch-agent.deb && \
-    rm amazon-cloudwatch-agent.deb
-COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
-ENV AWS_DEFAULT_REGION="us-east-1"
+#### STAR
+RUN wget https://github.com/alexdobin/STAR/archive/2.7.10b.tar.gz -O - | tar -zx -C /opt/TAtlas
+RUN echo 'export PATH="$PATH":/opt/TAtlas/STAR-2.7.10b/bin/Linux_x86_64' >> ~/.bashrc
 
-RUN pip3 install moto[sqs,s3,dynamodb] pytest --no-cache-dir
-
-# Config for sratoolkit untill I find a way to configure it using cli/bash
-COPY data/.ncbi /root/.ncbi
-# Copy tx2gene
-COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv
-# COPY scripts
-COPY src/scripts/Salmon_count_normalization.R /opt/TAtlas/DESeq2/Salmon_count_normalization.R
-COPY src/Consumer /opt/TAtlas/Consumer
-COPY src/Tests/test_pipeline.py /opt/TAtlas/Consumer
-COPY container_start.py /opt/TAtlas/container_start.py
-
-ENV queue_name="NearData_queue"
-ENV s3_bucket_name="neardata-salmon-ec2-results"
-ENV s3_bucket_name_low_mr="neardata-salmon-ec2-results-low-mr"
-ENV dynamodb_metadata_table="neardata-test-table"
-ENV execution_mode="Container"
-ENV start_cwagent="False"
+RUN pip3 install moto[sqs,s3,dynamodb]==5.0.1 pytest==8.0.0 --no-cache-dir
 
 RUN mkdir /root/.aws
 RUN echo "[default]\n \
 aws_access_key_id = test\n \
 aws_secret_access_key = test" >> /root/.aws/credentials
 
-RUN sed -i '11,12s/^/# /' /opt/TAtlas/Consumer/logger.py  # comment out lines with watchtower logging to disable it
+# Config for sratoolkit untill I find a way to configure it using cli/bash
+COPY data/.ncbi /root/.ncbi
+COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv
+COPY data/DESeq2/SRR11982817_ref_chr22_release111 /opt/TAtlas/DESeq2/SRR11982817_ref_release111/
+
+ENV AWS_DEFAULT_REGION="us-east-1"
+ENV queue_name="NearData_queue"
+ENV s3_bucket_name="neardata-salmon-ec2-results"
+ENV dynamodb_metadata_table="neardata-test-table"
+ENV execution_mode="Container"
+
+COPY src/scripts/ /opt/TAtlas/DESeq2/
+COPY src/Consumer /opt/TAtlas/Consumer
+COPY src/Tests/ /opt/TAtlas/Consumer
+
+RUN sed -i '12,15s/^/# /' /opt/TAtlas/Consumer/logger.py  # comment out lines with watchtower logging to disable it
 RUN sed -i '16s~.*~        ["prefetch", srr_id, "--max-size", "30g"],~' /opt/TAtlas/Consumer/pipeline_steps.py  # disable small file processing check to use small file as test input
 
-ENTRYPOINT ["python3", "/opt/TAtlas/Consumer/test_pipeline.py"]
+ENV pipeline_type="Salmon"
+ENTRYPOINT ["pytest", "/opt/TAtlas/Consumer/test_salmon_pipeline.py", "-o", "log_cli=true", "-m", "essential", "-s"]
+
+#ENV pipeline_type="STAR"
+#ENTRYPOINT ["pytest", "/opt/TAtlas/Consumer/test_star_pipeline.py", "-o", "log_cli=true", "-m", "essential", "-s"]
