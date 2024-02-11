@@ -27,27 +27,15 @@ RUN apt-get install libxml2-dev libssl-dev libcurl4-openssl-dev libopenblas-dev 
 RUN Rscript -e 'install.packages(c("readr", "dplyr", "BiocManager", "jsonlite"))'
 RUN Rscript -e 'BiocManager::install(c("DESeq2", "tximport"))'
 
-### CWAGENT
-RUN wget -q https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb && \
-    dpkg -i -E amazon-cloudwatch-agent.deb && \
-    rm amazon-cloudwatch-agent.deb
-COPY docker_cwagent_config.json /etc/cwagentconfig/default-linux-config.json
 ENV AWS_DEFAULT_REGION="us-east-1"
 
 # Config for sratoolkit untill I find a way to configure it using cli/bash
 COPY data/.ncbi /root/.ncbi
 # Copy SALMON index and tx2gene
-COPY data/salmon_index /opt/TAtlas/salmon_index/
+COPY data/salmon_indexes/release111/salmon_index_release111 /opt/TAtlas/salmon_index_release111/
 COPY data/DESeq2/tx2gene.gencode.v42.csv /opt/TAtlas/DESeq2/tx2gene.gencode.v42.csv
 # COPY scripts
 COPY src/scripts/Salmon_count_normalization.R /opt/TAtlas/DESeq2/Salmon_count_normalization.R
 COPY src/Consumer /opt/TAtlas/Consumer
-COPY container_start.py /opt/TAtlas/container_start.py
 
-ENV queue_name="Salmon_queue"
-ENV s3_bucket_name="neardata-salmon-ec2-results"
-ENV dynamodb_metadata_table="neardata-test-table"
-ENV execution_mode="Container"
-ENV start_cwagent="False"
-
-ENTRYPOINT ["python3", "/opt/TAtlas/container_start.py"]
+ENTRYPOINT ["python3", "/opt/TAtlas/Consumer/consumer.py"]
