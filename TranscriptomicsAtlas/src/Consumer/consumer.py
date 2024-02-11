@@ -59,7 +59,7 @@ def start_pipeline(mode="job"):
             while True:
                 messages = queue.receive_messages(MaxNumberOfMessages=1, WaitTimeSeconds=5)
                 process_messages(messages)
-        elif mode == "container":
+        elif mode == "HPC_container":
             tries = 0
             max_tries = 15
             retry_interval = 5
@@ -80,4 +80,5 @@ def start_pipeline(mode="job"):
 
 
 if __name__ == "__main__":
-    start_pipeline(mode="ec2")
+    mode = os.environ.get("execution_mode", "ec2")
+    start_pipeline(mode=mode)
