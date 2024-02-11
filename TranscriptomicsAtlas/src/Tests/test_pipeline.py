@@ -48,6 +48,14 @@ class TestPipeline(BaseCase):
 
         assert item == (self.table.get_item(Key={"SRR_id": self.srr_id}))["Item"]
 
+    def test_n_spots(self):
+        srr_id = "SRR13210228"
+        expected_n_spots = 152
+
+        self.run_pipeline(self.tissue_name, srr_id)
+
+        assert expected_n_spots == (self.table.get_item(Key={"SRR_id": self.srr_id}))["Item"]["n_spots"]
+
     def test_clean_dirs(self):
         self.run_pipeline(self.tissue_name, self.srr_id)
 

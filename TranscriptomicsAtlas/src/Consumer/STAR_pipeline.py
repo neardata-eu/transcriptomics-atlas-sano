@@ -20,7 +20,7 @@ class STARPipeline(Pipeline):
         )
 
         self.make_timestamps(
-            fasterq_dump, self.srr_id
+            fasterq_dump, self.srr_id, self.metadata
         )
 
         self.make_timestamps(

@@ -29,11 +29,14 @@ def prefetch(srr_id):
 
 @backoff.on_exception(backoff.constant, Exception, max_tries=2, logger=logger)
 @log_output
-def fasterq_dump(srr_id):
+def fasterq_dump(srr_id, metadata=None):
     fasterq_result = subprocess.run(
         ["fasterq-dump", srr_id, "--outdir", fastq_dir, "--threads", nproc],
         capture_output=True, text=True, env=my_env, cwd=work_dir
     )
+
+    if metadata:
+        metadata["n_spots"] = int(fasterq_result.stderr.split("\n")[0].split(":")[1].strip().replace(",", ""))
 
     return fasterq_result
 

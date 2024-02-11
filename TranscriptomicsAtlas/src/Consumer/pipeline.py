@@ -63,7 +63,7 @@ class Pipeline:
 
     def measure_sra_size(self):
         sra_filepath = f"{sra_dir}/{self.srr_id}.sra"
-        sra_filesize = "N/A"
+        sra_filesize = ""
         if os.path.exists(sra_filepath):
             sra_filesize = os.stat(sra_filepath).st_size
 
