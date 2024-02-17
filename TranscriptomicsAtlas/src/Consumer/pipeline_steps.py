@@ -51,10 +51,14 @@ def salmon(srr_id, metadata):
                   "--useVBOpt"
                   ]
 
-    if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
-        salmon_cmd.extend(["-r", f"{fastq_dir}/{srr_id}.fastq"])
-    else:
+    if os.path.exists(f"{fastq_dir}/{srr_id}_1.fastq") and os.path.exists(f"{fastq_dir}/{srr_id}_2.fastq"):
         salmon_cmd.extend(["-1", f"{fastq_dir}/{srr_id}_1.fastq", "-2", f"{fastq_dir}/{srr_id}_2.fastq"])
+        metadata["library_layout"] = "paired"
+    elif os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
+        salmon_cmd.extend(["-r", f"{fastq_dir}/{srr_id}.fastq"])
+        metadata["library_layout"] = "single"
+    else:
+        raise PipelineError("Invalid library type. Couldn't find Paired on Single fastq.", "Invalid library type")
 
     salmon_result = subprocess.run(salmon_cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
 
@@ -102,10 +106,14 @@ def star(srr_id, metadata):
                 "--outSAMattributes", "Standard"
                 ]
 
-    if os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
-        star_cmd.extend(["--readFilesIn", f"{fastq_dir}/{srr_id}.fastq"])
-    else:
+    if os.path.exists(f"{fastq_dir}/{srr_id}_1.fastq") and os.path.exists(f"{fastq_dir}/{srr_id}_2.fastq"):
         star_cmd.extend(["--readFilesIn", f"{fastq_dir}/{srr_id}_1.fastq", f"{fastq_dir}/{srr_id}_2.fastq"])
+        metadata["library_layout"] = "paired"
+    elif os.path.exists(f"{fastq_dir}/{srr_id}.fastq"):
+        star_cmd.extend(["--readFilesIn", f"{fastq_dir}/{srr_id}.fastq"])
+        metadata["library_layout"] = "single"
+    else:
+        raise PipelineError("Invalid library type. Couldn't find Paired on Single fastq.", "Invalid library type")
 
     star_result = subprocess.run(star_cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
 
