@@ -11,6 +11,7 @@ echo export s3_bucket_name="neardata-star-ec2-results"
 echo export dynamodb_metadata_table="neardata-test-table"
 echo export execution_mode="EC2"
 echo export pipeline_type="STAR"
+echo export index_release="111"
 } >> /etc/environment
 
 mkdir /opt/TAtlas/STAR_data/STAR_index_mount -p

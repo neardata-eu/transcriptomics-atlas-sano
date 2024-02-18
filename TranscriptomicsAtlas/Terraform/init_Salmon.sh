@@ -10,6 +10,7 @@ echo export s3_bucket_name="transcriptomics-atlas"
 echo export dynamodb_metadata_table="transcriptomics-atlas-salmon-metadata"
 echo export execution_mode="EC2"
 echo export pipeline_type="Salmon"
+echo export index_release="111"
 } >> /etc/environment
 
 su ubuntu -c "python3 /opt/TAtlas/Consumer/consumer.py"

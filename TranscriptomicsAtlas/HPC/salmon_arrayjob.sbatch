@@ -24,5 +24,6 @@ apptainer run --home /home/ubuntu --compat \
               --env queue_name="Salmon_queue_hpc" \
               --env dynamodb_metadata_table="neardata-tissues-salmon-metadata_hpc" \
               --env s3_bucket_name="transcriptomics-atlas" \
+              --env index_release="111" \
               /net/ascratch/people/plgpkica/neardata/salmonpipeline_v1-3.sif
 

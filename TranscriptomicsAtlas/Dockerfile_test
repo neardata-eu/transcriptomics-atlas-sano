@@ -49,6 +49,7 @@ ENV queue_name="NearData_queue"
 ENV s3_bucket_name="neardata-salmon-ec2-results"
 ENV dynamodb_metadata_table="neardata-test-table"
 ENV execution_mode="Container"
+ENV index_release="111"
 
 COPY src/scripts/ /opt/TAtlas/DESeq2/
 COPY src/Consumer /opt/TAtlas/Consumer
