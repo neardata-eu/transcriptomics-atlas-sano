@@ -23,6 +23,14 @@ def get_instance_id():
     return instance_id
 
 
+def get_instance_type():
+    instance_type = ""
+    if os.environ.get("execution_mode", None) == "EC2":
+        instance_type = requests.get('http://169.254.169.254/latest/meta-data/instance-type').text
+
+    return instance_type
+
+
 def get_ssm_parameter(param_name):
     ssm = boto3.client("ssm")
     ssm_param = ssm.get_parameter(Name=param_name, WithDecryption=True)
