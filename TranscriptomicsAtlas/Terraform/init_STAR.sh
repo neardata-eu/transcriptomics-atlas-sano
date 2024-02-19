@@ -14,6 +14,8 @@ echo export pipeline_type="STAR"
 echo export index_release="111"
 } >> /etc/environment
 
+aws s3 cp s3://neardata-src/STAR_data/STAR_ref/SRR11982817-ref/ReadsPerGene.out.tab /opt/TAtlas/STAR_data/STAR_ref/SRR11982817-ref/ReadsPerGene.out.tab
+
 mkdir /opt/TAtlas/STAR_data/STAR_index_mount -p
 aws ec2 attach-volume --instance-id="$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)" --volume-id=vol-0413899b97d48c54f --region=us-east-1 --device=/dev/sdf
 sleep $((5 + RANDOM % 10))
