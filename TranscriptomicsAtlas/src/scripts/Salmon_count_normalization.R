@@ -31,4 +31,4 @@ write.csv2(txi, file = paste0(output_dir, "/", SRX, "_salmon_row_counts.csv", se
 dds = DESeqDataSetFromTximport(txi, colData = samples, design = ~1)
 dds = estimateSizeFactors(object = dds)
 normalized_counts = counts(dds, normalized = TRUE)
-write.table(normalized_counts, file = paste0(output_dir, "/", SRX, "_salmon_normalized_counts.txt", sep = ""), sep = "\t", quote = F, col.names = NA)
+write.table(normalized_counts, file = paste0(output_dir, "/", SRX, "_salmon_normalized_counts.tsv", sep = ""), sep = "\t", quote = F, col.names = NA)

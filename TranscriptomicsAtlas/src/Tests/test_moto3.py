@@ -16,7 +16,7 @@ class TestPipeline(BaseCase):
         assert messages[0] == srr_id
 
     def test_s3(self):
-        with open("test_normalized_counts.txt", "w+") as f:
+        with open("test_normalized_counts.tsv", "w+") as f:
             f.write("test")
-        self.salmon_bucket.Object(f"test.txt").upload_file('test_normalized_counts.txt')
+        self.salmon_bucket.Object(f"test.txt").upload_file('test_normalized_counts.tsv')
         self.salmon_bucket.Object(f"test.txt").load()

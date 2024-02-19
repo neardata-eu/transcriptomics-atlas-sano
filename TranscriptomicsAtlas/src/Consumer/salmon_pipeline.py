@@ -36,10 +36,10 @@ class SalmonPipeline(Pipeline):
         mr_folder = "high_mapping_rate" if self.metadata["salmon_mapping_rate [%]"] >= 30 else "low_mapping_rate"
 
         row_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_row_counts.csv'
-        normalized_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_normalized_counts.txt'
+        normalized_counts_local_path = f'{deseq2_dir}/{self.srr_id}/{self.srr_id}_salmon_normalized_counts.tsv'
 
         row_counts_s3_path = f"Salmon/{mr_folder}/{self.tissue_name}/row_counts/{self.srr_id}_salmon_row_counts.csv"
-        normalized_counts_s3_path = f"Salmon/{mr_folder}/{self.tissue_name}/normalized_counts/{self.srr_id}_salmon_normalized_counts.txt"
+        normalized_counts_s3_path = f"Salmon/{mr_folder}/{self.tissue_name}/normalized_counts/{self.srr_id}_salmon_normalized_counts.tsv"
 
         self.s3.meta.client.upload_file(row_counts_local_path, self.s3_bucket_name, row_counts_s3_path)
         self.s3.meta.client.upload_file(normalized_counts_local_path, self.s3_bucket_name, normalized_counts_s3_path)

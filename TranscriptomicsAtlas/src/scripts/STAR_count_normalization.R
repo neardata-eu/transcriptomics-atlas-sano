@@ -52,6 +52,6 @@ normalized_counts = cbind(countData[, 1], normalized_counts)
 colnames(normalized_counts) = c("transcript_ID", "stimulus")
 
 #write normalized output
-normalized_counts_filename = paste0(SRX, "_STAR_normalized_counts.txt")
+normalized_counts_filename = paste0(SRX, "_STAR_normalized_counts.tsv")
 normalized_counts_path = file.path(output_dir, normalized_counts_filename)
 write.table(normalized_counts, file = normalized_counts_path, sep = "\t", quote = F, row.names = F)

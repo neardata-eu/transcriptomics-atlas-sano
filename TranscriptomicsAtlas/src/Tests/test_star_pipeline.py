@@ -17,7 +17,7 @@ class TestUtils(TestPipeline):
         ## CHECK S3 AND DYNAMODB
         s3_base_path = f"STAR/low_mapping_rate/{self.tissue_name}"
         s3_path_row_counts = f"{s3_base_path}/row_counts/{self.srr_id}_STAR_row_counts.csv"
-        s3_path_normalized_counts = f"{s3_base_path}/normalized_counts/{self.srr_id}_STAR_normalized_counts.txt"
+        s3_path_normalized_counts = f"{s3_base_path}/normalized_counts/{self.srr_id}_STAR_normalized_counts.tsv"
         self.bucket.Object(s3_path_row_counts).load()
         self.bucket.Object(s3_path_normalized_counts).load()
 
