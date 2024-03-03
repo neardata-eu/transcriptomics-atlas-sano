@@ -3,7 +3,7 @@ resource "aws_sqs_queue" "Salmon_queue" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 18000
+  visibility_timeout_seconds = 14400
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.Salmon_deadletter_queue.arn
@@ -16,7 +16,7 @@ resource "aws_sqs_queue" "Salmon_deadletter_queue" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 10800
+  visibility_timeout_seconds = 14400
 }
 
 resource "aws_sqs_queue" "Salmon_queue_hpc" {
@@ -24,7 +24,7 @@ resource "aws_sqs_queue" "Salmon_queue_hpc" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 18000
+  visibility_timeout_seconds = 14400
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.Salmon_deadletter_queue_hpc.arn
@@ -37,7 +37,7 @@ resource "aws_sqs_queue" "Salmon_deadletter_queue_hpc" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 10800
+  visibility_timeout_seconds = 14400
 }
 
 resource "aws_sqs_queue" "STAR_queue" {
@@ -45,7 +45,7 @@ resource "aws_sqs_queue" "STAR_queue" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 36000
+  visibility_timeout_seconds = 14400
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.STAR_deadletter_queue.arn
@@ -58,5 +58,5 @@ resource "aws_sqs_queue" "STAR_deadletter_queue" {
   max_message_size           = 2048
   message_retention_seconds  = 604800
   receive_wait_time_seconds  = 5
-  visibility_timeout_seconds = 36000
+  visibility_timeout_seconds = 14400
 }
