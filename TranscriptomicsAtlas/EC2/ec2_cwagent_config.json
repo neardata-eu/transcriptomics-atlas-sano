@@ -1,6 +1,6 @@
 {
     "agent": {
-        "metrics_collection_interval": 10,
+        "metrics_collection_interval": 60,
         "run_as_user": "root"
     },
     "metrics": {
@@ -19,76 +19,7 @@
         "metrics_collected": {
             "procstat": [
                 {
-                    "exe": "prefetch.*",
-                    "measurement": [
-                        "cpu_time",
-                        "cpu_time_idle",
-                        "cpu_time_iowait",
-                        "cpu_time_user",
-                        "cpu_usage",
-                        "memory_rss",
-                        "memory_vms",
-                        "num_threads",
-                        "read_bytes",
-                        "write_bytes",
-                        "read_count",
-                        "write_count"
-                    ]
-                },
-                {
-                    "exe": "fasterq-dump.*",
-                    "measurement": [
-                        "cpu_time",
-                        "cpu_time_idle",
-                        "cpu_time_iowait",
-                        "cpu_time_user",
-                        "cpu_usage",
-                        "memory_rss",
-                        "memory_vms",
-                        "num_threads",
-                        "read_bytes",
-                        "write_bytes",
-                        "read_count",
-                        "write_count"
-                    ]
-                },
-                {
-                    "exe": "salmon.*",
-                    "measurement": [
-                        "cpu_time",
-                        "cpu_time_idle",
-                        "cpu_time_iowait",
-                        "cpu_time_user",
-                        "cpu_usage",
-                        "memory_rss",
-                        "memory_vms",
-                        "num_threads",
-                        "read_bytes",
-                        "write_bytes",
-                        "read_count",
-                        "write_count"
-                    ]
-                },
-                {
                     "exe": "STAR.*",
-                    "measurement": [
-                        "cpu_time",
-                        "cpu_time_idle",
-                        "cpu_time_iowait",
-                        "cpu_time_user",
-                        "cpu_usage",
-                        "memory_rss",
-                        "memory_vms",
-                        "memory_swap",
-                        "num_threads",
-                        "read_bytes",
-                        "write_bytes",
-                        "read_count",
-                        "write_count"
-                    ]
-                },
-                {
-                    "exe": "R.*",
                     "measurement": [
                         "cpu_time",
                         "cpu_time_idle",
@@ -109,9 +40,10 @@
                 "measurement": [
                     "cpu_usage_idle",
                     "cpu_usage_iowait",
-                    "cpu_usage_user"
+                    "cpu_usage_user",
+                    "cpu_usage_system"
                 ],
-                "metrics_collection_interval": 10,
+                "metrics_collection_interval": 60,
                 "totalcpu": true
             },
             "diskio": {
@@ -122,10 +54,9 @@
                     "writes",
                     "reads"
                 ],
-                "metrics_collection_interval": 10,
+                "metrics_collection_interval": 60,
                 "resources": [
-                    "nvme0n1p1",
-                    "nvme1n1"
+                    "nvme0n1p1"
                 ]
             },
             "mem": {
@@ -135,23 +66,11 @@
                     "mem_used",
                     "mem_used_percent"
                 ],
-                "metrics_collection_interval": 10
-            },
-            "net": {
-                "measurement": [
-                    "bytes_sent",
-                    "bytes_recv",
-                    "packets_sent",
-                    "packets_recv"
-                ],
-                "metrics_collection_interval": 10,
-                "resources": [
-                    "*"
-                ]
+                "metrics_collection_interval": 60
             },
             "statsd": {
                 "metrics_aggregation_interval": 0,
-                "metrics_collection_interval": 10,
+                "metrics_collection_interval": 60,
                 "service_address": ":8125"
             }
         }
