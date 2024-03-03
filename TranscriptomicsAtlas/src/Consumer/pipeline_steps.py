@@ -117,6 +117,16 @@ def star(srr_id, metadata):
 
     star_result = subprocess.run(star_cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
 
+    log_final_path = f"{star_dir}/{srr_id}/Log.final.out"
+    log_out_path = f"{star_dir}/{srr_id}/Log.out"
+    if os.path.exists(log_out_path):
+        with open(log_out_path) as f:
+            logger.warning(f.read())
+
+    if os.path.exists(log_final_path):
+        with open(log_final_path) as f:
+            logger.warning(f.read())
+
     with open(f"{star_dir}/{srr_id}/Log.final.out") as f:
         log_final = f.read()
 
