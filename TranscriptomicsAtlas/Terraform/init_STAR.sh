@@ -16,15 +16,20 @@ echo export index_release="111"
 
 aws s3 cp s3://neardata-src/STAR_data/STAR_ref/SRR11982817-ref/ReadsPerGene.out.tab /opt/TAtlas/STAR_data/STAR_ref/SRR11982817-ref/ReadsPerGene.out.tab
 
-mkdir /opt/TAtlas/STAR_data/STAR_index_mount -p
-aws ec2 attach-volume --instance-id="$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)" --volume-id=vol-0413899b97d48c54f --region=us-east-1 --device=/dev/sdf
-sleep $((5 + RANDOM % 10))
-mount /dev/nvme1n1 /opt/TAtlas/STAR_data/STAR_index_mount/
+### NFS APPROACH
+mkdir /opt/TAtlas/STAR_data/STAR_index/ -p
+mount.nfs4 10.0.1.100:/ /opt/TAtlas/STAR_data/STAR_index/
 
-mkdir /opt/TAtlas/STAR_data/STAR_index/STAR_index_hg38_gtf_release_111 -p
-cp /opt/TAtlas/STAR_data/STAR_index_mount/STAR_index_hg38_gtf_release_111/ /opt/TAtlas/STAR_data/STAR_index/ -r
-
-umount /opt/TAtlas/STAR_data/STAR_index_mount/
-aws ec2 detach-volume --instance-id="$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)" --volume-id=vol-0413899b97d48c54f --region=us-east-1 --device=/dev/sdf
+#### MULTI-ATTACH APPROACH
+#mkdir /opt/TAtlas/STAR_data/STAR_index_mount -p
+#aws ec2 attach-volume --instance-id="$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)" --volume-id=vol-0413899b97d48c54f --region=us-east-1 --device=/dev/sdf
+#sleep $((5 + RANDOM % 10))
+#mount /dev/nvme1n1 /opt/TAtlas/STAR_data/STAR_index_mount/
+#
+#mkdir /opt/TAtlas/STAR_data/STAR_index/STAR_index_hg38_gtf_release_111 -p
+#cp /opt/TAtlas/STAR_data/STAR_index_mount/STAR_index_hg38_gtf_release_111/ /opt/TAtlas/STAR_data/STAR_index/ -r
+#
+#umount /opt/TAtlas/STAR_data/STAR_index_mount/
+#aws ec2 detach-volume --instance-id="$(wget -q -O - http://169.254.169.254/latest/meta-data/instance-id)" --volume-id=vol-0413899b97d48c54f --region=us-east-1 --device=/dev/sdf
 
 su ubuntu -c "python3 /opt/TAtlas/Consumer/consumer.py"
