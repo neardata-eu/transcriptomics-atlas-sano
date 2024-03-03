@@ -4,10 +4,10 @@ fastq_dir="$work_dir/fastq"
 star_dir="$work_dir/STAR"
 
 # prefetch:
-prefetch $SRA_ID
+prefetch $SRA_ID --progress
 
 # fasterq-dump:
-fasterq-dump $SRA_ID -f --threads $(nproc) --outdir $fastq_dir
+fasterq-dump $SRA_ID -f --threads $(nproc) --outdir $fastq_dir --progress
 
 # salmon with single fastq:
 salmon quant --threads $(nproc) --useVBOpt -i /opt/TAtlas/salmon_index_release111/ -l A -o $work_dir/salmon/$SRA_ID -r $fastq_dir/$SRA_ID.fastq
