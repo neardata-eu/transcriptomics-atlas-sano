@@ -56,12 +56,15 @@ class STARPipeline(Pipeline):
 
         progress_logs_local_path = f"{star_dir}/{self.srr_id}/Log.progress.out"
         final_logs_local_path = f"{star_dir}/{self.srr_id}/Log.final.out"
+        logs_local_path = f"{star_dir}/{self.srr_id}/Log.out"
 
         progress_logs_s3_path = f"STAR/{mr_folder}/{self.tissue_name}/logs/{self.srr_id}_STAR_log.progress.out"
         final_logs_s3_path = f"STAR/{mr_folder}/{self.tissue_name}/logs/{self.srr_id}_STAR_log.final.out"
+        logs_s3_path = f"STAR/{mr_folder}/{self.tissue_name}/logs/{self.srr_id}_STAR_log.out"
 
         self.s3.meta.client.upload_file(progress_logs_local_path, self.s3_bucket_name, progress_logs_s3_path)
         self.s3.meta.client.upload_file(final_logs_local_path, self.s3_bucket_name, final_logs_s3_path)
+        self.s3.meta.client.upload_file(logs_local_path, self.s3_bucket_name, logs_s3_path)
         logger.info("S3 upload logs finished")
 
     def gather_metadata(self):
