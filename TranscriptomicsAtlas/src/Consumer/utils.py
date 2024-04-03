@@ -1,7 +1,4 @@
 import os
-from collections import defaultdict
-
-nested_dict = lambda: defaultdict(nested_dict)  # NOQA
 
 
 class PipelineError(Exception):

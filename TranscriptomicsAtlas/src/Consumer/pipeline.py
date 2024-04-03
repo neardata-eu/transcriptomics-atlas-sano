@@ -8,7 +8,7 @@ import boto3
 from aws_utils import srr_id_in_metadata_table, get_instance_id, get_instance_type
 from config import nproc, index_release, sra_dir, fastq_dir, metadata_dir
 from logger import logger
-from utils import nested_dict, PipelineError
+from utils import PipelineError
 
 
 class Pipeline:
@@ -16,7 +16,7 @@ class Pipeline:
     s3 = boto3.resource('s3')
     s3_bucket_name = os.environ["s3_bucket_name"]
 
-    metadata: nested_dict
+    metadata: dict
     tissue_name: str
     srr_id: str
 
@@ -24,7 +24,7 @@ class Pipeline:
 
     def __init__(self, message):
         self.tissue_name, self.srr_id = message.split("-")
-        self.metadata = nested_dict()
+        self.metadata = dict()
 
     def make_timestamps(self, pipeline_func, *args, **kwargs):
         self.metadata[pipeline_func.__name__ + "_start_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
