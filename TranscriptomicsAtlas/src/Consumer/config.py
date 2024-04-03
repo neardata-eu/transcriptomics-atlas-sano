@@ -16,5 +16,7 @@ star_dir = f"{work_dir}/STAR"
 star_data_dir = "/opt/TAtlas/STAR_data"
 star_index_dir = f"/opt/TAtlas/STAR_data/STAR_index/STAR_index_hg38_gtf_release_{index_release}/"
 
+EARLY_STOPPING = os.environ.get("EARLY_STOPPING", True)
+
 for directory in [sra_dir, fastq_dir, salmon_dir, deseq2_dir, metadata_dir, star_dir]:
     os.makedirs(directory, exist_ok=True)

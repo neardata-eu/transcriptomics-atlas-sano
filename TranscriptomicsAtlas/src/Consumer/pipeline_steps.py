@@ -1,10 +1,13 @@
 import os
 import re
+import time
 import subprocess
+import threading
+from datetime import datetime
 
 import backoff
 
-from config import my_env, work_dir, nproc, fastq_dir, salmon_dir, salmon_index_dir, star_index_dir, star_dir
+from config import my_env, work_dir, nproc, fastq_dir, salmon_dir, salmon_index_dir, star_index_dir, star_dir, EARLY_STOPPING
 from logger import log_output, logger
 from utils import PipelineError
 
@@ -113,19 +116,78 @@ def star(srr_id, metadata):
         star_cmd.extend(["--readFilesIn", f"{fastq_dir}/{srr_id}.fastq"])
         metadata["library_layout"] = "single"
     else:
-        raise PipelineError("Invalid library type. Couldn't find Paired on Single fastq.", "Invalid library type")
+        raise PipelineError("Invalid library type. Couldn't find Paired or Single fastq.", "Invalid library type")
 
-    star_result = subprocess.run(star_cmd, capture_output=True, text=True, env=my_env, cwd=work_dir)
+    star_process = subprocess.Popen(
+        star_cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=my_env,
+        cwd=work_dir
+    )
+
+    if EARLY_STOPPING:
+        early_stopped = None
+
+        def star_early_stopping(process):
+            nonlocal early_stopped
+
+            log_filename = f"{star_dir}/{srr_id}/Log.progress.out"
+            months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+            logger.info("Starting early stopping thread checking")
+
+            while process.poll() is None:
+                time.sleep(60)
+
+                with open(log_filename, 'r') as log_file:
+                    lines = log_file.readlines()
+
+                if len(lines) >= 2 and lines[-2] == "ALL DONE!":
+                    return
+
+                lines = [line for line in lines if line[:3] in months]
+
+                if not lines:
+                    continue
+
+                curr_row = list(filter(None, lines[-1].split(' ')))
+                curr_n_spots = float(curr_row[4])
+                curr_mapping_rate = float(curr_row[6][:-1])
+
+                if curr_mapping_rate < 30 and curr_n_spots > 0.10*metadata["n_spots"]:
+                    logger.warning("Early stopping check detects mapping rate below 30%. Aborting.")
+                    process.terminate()
+                    early_stopped = True
+                    metadata["STAR_mapping_rate [%]"] = curr_mapping_rate
+                    metadata["star_end_time"] = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                    break
+                elif curr_mapping_rate >= 30:
+                    logger.info(f"Current mapping rate above 30 ({curr_mapping_rate}%). Continuing.")
+                elif curr_n_spots <= 0.10*metadata["n_spots"]:
+                    logger.info(f"Current n_spots processed below 10%. Continuing.")
+
+        thread = threading.Thread(target=star_early_stopping, args=(star_process,))
+        thread.start()
+
+        stdout, stderr = star_process.communicate()
+        thread.join()
+
+        if early_stopped:
+            raise PipelineError("Early stopping due to mapping rate below 30%.", "Early stopping")
+    else:
+        stdout, stderr = star_process.communicate()
 
     log_final_path = f"{star_dir}/{srr_id}/Log.final.out"
     log_out_path = f"{star_dir}/{srr_id}/Log.out"
     if os.path.exists(log_out_path):
         with open(log_out_path) as f:
-            logger.warning(f.read())
+            logger.info(f.read())
 
     if os.path.exists(log_final_path):
         with open(log_final_path) as f:
-            logger.warning(f.read())
+            logger.info(f.read())
 
     with open(f"{star_dir}/{srr_id}/Log.final.out") as f:
         log_final = f.read()
@@ -135,7 +197,7 @@ def star(srr_id, metadata):
     mapping_rate = float(match.group(1).strip())
     metadata["STAR_mapping_rate [%]"] = mapping_rate
 
-    return star_result
+    return star_process
 
 
 @log_output
