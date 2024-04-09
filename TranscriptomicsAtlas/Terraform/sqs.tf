@@ -7,7 +7,7 @@ resource "aws_sqs_queue" "Salmon_queue" {
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.Salmon_deadletter_queue.arn
-    maxReceiveCount     = 1
+    maxReceiveCount     = 10
   })
 }
 
@@ -28,7 +28,7 @@ resource "aws_sqs_queue" "Salmon_queue_hpc" {
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.Salmon_deadletter_queue_hpc.arn
-    maxReceiveCount     = 1
+    maxReceiveCount     = 10
   })
 }
 
@@ -49,7 +49,7 @@ resource "aws_sqs_queue" "STAR_queue" {
 
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.STAR_deadletter_queue.arn
-    maxReceiveCount     = 1
+    maxReceiveCount     = 10
   })
 }
 
